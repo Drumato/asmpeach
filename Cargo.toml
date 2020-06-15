@@ -3,6 +3,12 @@ name = "x64_asm"
 version = "0.1.0"
 authors = ["Drumato <drumatech109@gmail.com>"]
 edition = "2018"
+license = "MIT"
+description = "x86_64 assembler"
+documentation = "https://docs.rs/x64-asm"
+homepage = "https://github.com/Drumato/x64-asm"
+repository = "https://github.com/Drumato/x64-asm"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
