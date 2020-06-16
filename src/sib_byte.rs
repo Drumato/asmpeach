@@ -1,4 +1,3 @@
-
 pub struct SIBByte {
     pub base_reg: u8,
     pub index_reg: u8,
@@ -13,9 +12,13 @@ impl SIBByte {
         byte << 3
     }
     pub fn scale_field(byte: u8) -> u8 {
-        assert!(byte <= 0x3);
-
-        byte << 6
+        match byte {
+            0x1 => 0b00,
+            0x2 => 0b01 << 6,
+            0x4 => 0b10 << 6,
+            0x8 => 0b11 << 6,
+            _ => panic!("scale must 0x1, 0x2, 0x4 or 0x8"),
+        }
     }
 
     pub fn to_byte(&self) -> u8 {

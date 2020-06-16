@@ -14,8 +14,8 @@ pub struct REXPrefix {
 
 impl REXPrefix {
     pub const BASE: u8 = 0x40;
-    pub const W_BIT: u8 = 0x80;
-    pub const R_BIT: u8 = 0x40;
+    pub const W_BIT: u8 = 0x08;
+    pub const R_BIT: u8 = 0x04;
     pub const X_BIT: u8 = 0x02;
     pub const B_BIT: u8 = 0x01;
 

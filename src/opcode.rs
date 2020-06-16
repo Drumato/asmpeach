@@ -24,7 +24,7 @@ impl Opcode {
         match self {
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => vec![0x88],
-            Opcode::MOVRM64R64 { r64: _, rm64 : _} => vec![0x8b],
+            Opcode::MOVRM64R64 { r64: _, rm64 : _} => vec![0x89],
         }
     }
 
@@ -38,7 +38,7 @@ impl Opcode {
                     w_bit: true,
                     r_bit: rm64.is_expanded(),
                     // req_sib_byte() でindexフィールドが
-                    x_bit: rm64.req_sib_byte(),
+                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
                     b_bit: r64.is_expanded(),
                 })
             }
