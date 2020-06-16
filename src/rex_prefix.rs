@@ -1,3 +1,5 @@
+use crate::{GeneralPurposeRegister};
+
 /// using for 64-bit mode.
 pub struct REXPrefix {
     /// related with operand-size.
@@ -29,6 +31,21 @@ impl REXPrefix {
         };
 
         base | f(self.w_bit, Self::W_BIT) | f(self.r_bit, Self::W_BIT) | f(self.x_bit, Self::X_BIT) | f(self.b_bit, Self::B_BIT)
+    }
+
+    pub fn b_bit_from_reg(reg: &GeneralPurposeRegister) -> u8 {
+        if reg.is_expanded() {
+            Self::B_BIT
+        } else {
+            0b0
+        }
+    }
+    pub fn r_bit_from_reg(reg: &GeneralPurposeRegister) -> u8 {
+        if reg.is_expanded() {
+            Self::R_BIT
+        } else {
+            0b0
+        }
     }
 }
 
