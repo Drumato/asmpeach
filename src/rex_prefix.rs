@@ -1,7 +1,7 @@
-use crate::{GeneralPurposeRegister};
+use crate::GeneralPurposeRegister;
 
-use std::fmt;
 use fmt::Formatter;
+use std::fmt;
 
 /// using for 64-bit mode.
 #[derive(Eq, Ord, PartialOrd, PartialEq, Clone, Copy)]
@@ -23,10 +23,9 @@ impl REXPrefix {
     pub const X_BIT: u8 = 0x02;
     pub const B_BIT: u8 = 0x01;
 
-
     pub fn to_byte(&self) -> u8 {
         let base = Self::BASE;
-        let f = |bit: bool, byte: u8| -> u8{
+        let f = |bit: bool, byte: u8| -> u8 {
             if bit {
                 byte
             } else {
@@ -34,7 +33,10 @@ impl REXPrefix {
             }
         };
 
-        base | f(self.w_bit, Self::W_BIT) | f(self.r_bit, Self::W_BIT) | f(self.x_bit, Self::X_BIT) | f(self.b_bit, Self::B_BIT)
+        base | f(self.w_bit, Self::W_BIT)
+            | f(self.r_bit, Self::W_BIT)
+            | f(self.x_bit, Self::X_BIT)
+            | f(self.b_bit, Self::B_BIT)
     }
 
     pub fn b_bit_from_reg(reg: &GeneralPurposeRegister) -> u8 {
@@ -53,7 +55,7 @@ impl REXPrefix {
     }
 }
 
-impl fmt::Display for REXPrefix{
+impl fmt::Display for REXPrefix {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "REX(0b{:b})", self.to_byte())
     }
@@ -61,7 +63,7 @@ impl fmt::Display for REXPrefix{
 
 impl fmt::Debug for REXPrefix {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let func = |b: bool, c: char| -> char{
+        let func = |b: bool, c: char| -> char {
             if b {
                 c
             } else {
@@ -69,12 +71,12 @@ impl fmt::Debug for REXPrefix {
             }
         };
 
-        let w = func(self.w_bit, 'W');
-        let r = func(self.r_bit, 'R');
-        let x = func(self.x_bit, 'X');
-        let b = func(self.b_bit, 'B');
+        let w_bit = func(self.w_bit, 'W');
+        let r_bit = func(self.r_bit, 'R');
+        let x_bit = func(self.x_bit, 'X');
+        let b_bit = func(self.b_bit, 'B');
 
-        write!(f, "0100{}{}{}{}", w, r, x, b)
+        write!(f, "0100{}{}{}{}", w_bit, r_bit, x_bit, b_bit)
     }
 }
 
@@ -91,7 +93,10 @@ mod rex_prefix_tests {
             b_bit: false,
         };
 
-        assert_eq!(REXPrefix::BASE | REXPrefix::W_BIT | REXPrefix::X_BIT, prefix.to_byte());
+        assert_eq!(
+            REXPrefix::BASE | REXPrefix::W_BIT | REXPrefix::X_BIT,
+            prefix.to_byte()
+        );
     }
 
     #[test]

@@ -1,24 +1,14 @@
 use crate::Operand;
-use crate::{REXPrefix, ModRM, SIBByte, Immediate, Displacement};
-
+use crate::{Displacement, Immediate, ModRM, REXPrefix, SIBByte};
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Opcode {
     // Move
-
     /// Move r8 to r/m8
-    MOVRM8R8 {
-        r8: Operand,
-        rm8: Operand,
-    },
+    MOVRM8R8 { r8: Operand, rm8: Operand },
 
     /// Move r64 to r/m64
-    MOVRM64R64 {
-        r64: Operand,
-        rm64: Operand,
-    },
-
-    /// Move
+    MOVRM64R64 { r64: Operand, rm64: Operand },
 }
 
 impl Opcode {
@@ -26,17 +16,16 @@ impl Opcode {
         match self {
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => vec![0x88],
-            Opcode::MOVRM64R64 { r64: _, rm64 : _} => vec![0x89],
+            Opcode::MOVRM64R64 { r64: _, rm64: _ } => vec![0x89],
         }
     }
 
     /// calculating REX-Prefix byte
     pub fn rex_prefix(&self) -> Option<REXPrefix> {
         match &self {
-
             // Move
-            Opcode::MOVRM8R8 { rm8: _, r8: _, } => None,
-            Opcode::MOVRM64R64 { rm64, r64, } => {
+            Opcode::MOVRM8R8 { rm8: _, r8: _ } => None,
+            Opcode::MOVRM64R64 { rm64, r64 } => {
                 Some(REXPrefix {
                     w_bit: true,
                     r_bit: rm64.is_expanded(),
@@ -53,11 +42,11 @@ impl Opcode {
     pub fn modrm(&self) -> Option<ModRM> {
         match &self {
             // Move
-            Opcode::MOVRM8R8 { rm8, r8, } => {
+            Opcode::MOVRM8R8 { rm8, r8 } => {
                 // MR
                 Some(ModRM::new_mr(rm8.addressing_mode(), rm8, r8))
             }
-            Opcode::MOVRM64R64 { rm64, r64, } => {
+            Opcode::MOVRM64R64 { rm64, r64 } => {
                 // MR
                 Some(ModRM::new_mr(rm64.addressing_mode(), rm64, r64))
             }
@@ -85,7 +74,6 @@ impl Opcode {
     #[allow(unreachable_patterns)]
     pub fn sib_bite(&self) -> Option<SIBByte> {
         match &self {
-
             // Move
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.sib_byte(),
             Opcode::MOVRM64R64 { rm64, r64: _ } => rm64.sib_byte(),
