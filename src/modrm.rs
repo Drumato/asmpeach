@@ -11,6 +11,8 @@ impl ModRM {
     pub fn to_byte(&self) -> u8 {
         Self::mode_field(self.mode.to_byte()) | self.reg | self.rm
     }
+
+    /// new MR Encoding.
     pub fn new_mr(mode: AddressingMode, rm: &Operand, reg: &Operand) -> Self {
         let rm_byte = if rm.req_sib_byte() {
             0x04

@@ -14,12 +14,17 @@ pub enum Operand {
     // CONTROL
 
 
+    /// memory addressing
+    /// ex. [rax], -4[rbp]
     ADDRESSING {
         base_reg: GeneralPurposeRegister,
         index_reg: Option<GeneralPurposeRegister>,
         displacement: Option<Displacement>,
         scale: Option<u8>,
     },
+
+    /// label in assembly code.
+    /// using label operand in jump-related instructions.
     LABEL(String),
     Immediate(Immediate),
 }
@@ -118,6 +123,7 @@ impl Operand {
         }
     }
 
+    /// register code
     /// レジスタ番号の取得
     pub fn number(&self) -> u8 {
         match self {
@@ -127,6 +133,7 @@ impl Operand {
         }
     }
 
+    /// get addressing mode in ModRM:mode
     pub fn addressing_mode(&self) -> AddressingMode {
         match self {
             Operand::ADDRESSING { base_reg: _, index_reg: _, displacement, scale: _ } => {

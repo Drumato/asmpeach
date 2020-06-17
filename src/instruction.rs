@@ -1,11 +1,14 @@
 use crate::{Opcode};
 
+/// An implementation of x64 instruction.
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub struct Instruction {
     pub opcode: Opcode,
 }
 
 impl Instruction {
+
+    // assembling for each instructions.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut codes = Vec::new();
 

@@ -17,6 +17,8 @@ pub enum Opcode {
         r64: Operand,
         rm64: Operand,
     },
+
+    /// Move
 }
 
 impl Opcode {
@@ -28,6 +30,7 @@ impl Opcode {
         }
     }
 
+    /// calculating REX-Prefix byte
     pub fn rex_prefix(&self) -> Option<REXPrefix> {
         match &self {
 
@@ -45,6 +48,7 @@ impl Opcode {
         }
     }
 
+    /// calculating ModR/M byte
     #[allow(unreachable_patterns)]
     pub fn modrm(&self) -> Option<ModRM> {
         match &self {
@@ -61,6 +65,9 @@ impl Opcode {
             _ => None,
         }
     }
+
+    /// get displacement
+    /// if memory operand hasn't found, it returns Option::None,
     pub fn get_displacement(&self) -> Option<Displacement> {
         match &self {
             // Move

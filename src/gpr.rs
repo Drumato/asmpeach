@@ -14,14 +14,25 @@ pub enum GeneralPurposeRegister {
     DL,
 
     // 64bit general-purpose registers
+    /// Accumulator Register
     RAX,
+
+    /// (Stack) Base Pointer Register
     RBP,
+    /// Stack Pointer Register
     RSP,
+    /// Destination Index Register
     RDI,
+    /// Source Index Register
     RSI,
+    /// Data Register
     RDX,
+    /// Counter Register
     RCX,
+    /// Base Register
     RBX,
+
+    // x64 appended registers
     R8,
     R9,
     R10,
@@ -33,6 +44,7 @@ pub enum GeneralPurposeRegister {
 }
 
 impl GeneralPurposeRegister {
+    /// register code
     pub fn number(&self) -> u8 {
         match self {
             GeneralPurposeRegister::AL | GeneralPurposeRegister::RAX | GeneralPurposeRegister::R8 => 0,
@@ -48,19 +60,22 @@ impl GeneralPurposeRegister {
 
     #[allow(clippy::match_single_binding)]
     pub fn is_8bit(&self) -> bool {
-        match self{
+        match self {
             _ => false,
         }
     }
 
+    /// creating str for AT&T syntax
     pub fn to_at(&self) -> String {
         format!("%{}", self.to_str())
     }
 
+    /// creating str for Intel syntax
     pub fn to_intel(&self) -> String {
         self.to_str().to_string()
     }
 
+    /// check whether a register is expanded after x64.
     /// 拡張されたレジスタかどうかのチェック
     /// REX prefixに用いる
     pub fn is_expanded(&self) -> bool {

@@ -32,6 +32,16 @@ mod mov_tests {
 
     #[test]
     fn movrm64r64_test() {
+        // mov rax, rcx
+        let inst = Instruction {
+            opcode: Opcode::MOVRM64R64 {
+                rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
+                r64: Operand::GENERALREGISTER(GeneralPurposeRegister::RCX),
+            }
+        };
+
+        assert_eq!(inst.to_bytes(), vec![0x48, 0x89, 0xc8]);
+
         // mov [rax + rbx * 4], rcx
         let inst = Instruction {
             opcode: Opcode::MOVRM64R64 {

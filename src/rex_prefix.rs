@@ -1,6 +1,10 @@
 use crate::{GeneralPurposeRegister};
 
+use std::fmt;
+use fmt::Formatter;
+
 /// using for 64-bit mode.
+#[derive(Eq, Ord, PartialOrd, PartialEq, Clone, Copy)]
 pub struct REXPrefix {
     /// related with operand-size.
     pub w_bit: bool,
@@ -49,9 +53,34 @@ impl REXPrefix {
     }
 }
 
+impl fmt::Display for REXPrefix{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "REX(0b{:b})", self.to_byte())
+    }
+}
+
+impl fmt::Debug for REXPrefix {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let func = |b: bool, c: char| -> char{
+            if b {
+                c
+            } else {
+                '-'
+            }
+        };
+
+        let w = func(self.w_bit, 'W');
+        let r = func(self.r_bit, 'R');
+        let x = func(self.x_bit, 'X');
+        let b = func(self.b_bit, 'B');
+
+        write!(f, "0100{}{}{}{}", w, r, x, b)
+    }
+}
+
 #[cfg(test)]
 mod rex_prefix_tests {
-    use crate::REXPrefix;
+    use super::*;
 
     #[test]
     fn to_byte_test() {
@@ -63,5 +92,29 @@ mod rex_prefix_tests {
         };
 
         assert_eq!(REXPrefix::BASE | REXPrefix::W_BIT | REXPrefix::X_BIT, prefix.to_byte());
+    }
+
+    #[test]
+    fn display_rex_prefix_test() {
+        let prefix = REXPrefix {
+            w_bit: true,
+            r_bit: false,
+            x_bit: true,
+            b_bit: false,
+        };
+
+        assert_eq!("REX(0b1001010)", format!("{}", prefix).as_str());
+    }
+
+    #[test]
+    fn debug_rex_prefix_test() {
+        let prefix = REXPrefix {
+            w_bit: true,
+            r_bit: false,
+            x_bit: true,
+            b_bit: false,
+        };
+
+        assert_eq!("0100W-X-", format!("{:?}", prefix).as_str());
     }
 }
