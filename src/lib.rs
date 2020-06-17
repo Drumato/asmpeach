@@ -8,7 +8,7 @@ mod sib_byte;
 mod gpr;
 mod imm;
 mod disp;
-mod test;
+mod tests;
 
 pub use rex_prefix::*;
 pub use modrm::*;

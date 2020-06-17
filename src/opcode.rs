@@ -1,5 +1,4 @@
-use crate::Operand;
-use crate::{Displacement, Immediate, ModRM, REXPrefix, SIBByte};
+use crate::{Displacement, Encoding, GeneralPurposeRegister, Immediate, ModRM, Operand, REXPrefix, SIBByte};
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Opcode {
@@ -9,6 +8,15 @@ pub enum Opcode {
 
     /// Move r64 to r/m64
     MOVRM64R64 { r64: Operand, rm64: Operand },
+
+    // Push
+    /// Push r/m64
+    PUSHRM64 { rm64: Operand },
+
+    /// Push r64,
+    PUSHR64 { r64: GeneralPurposeRegister },
+    /// Push imm32
+    PUSHIMM32 { imm: Immediate },
 }
 
 impl Opcode {
@@ -17,6 +25,25 @@ impl Opcode {
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => vec![0x88],
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => vec![0x89],
+
+            // Push
+
+            Opcode::PUSHRM64 { rm64: _ } => vec![0xff],
+            Opcode::PUSHR64 { r64 } => vec![0x50 + r64.number()],
+            Opcode::PUSHIMM32 { imm: _ } => vec![0x68],
+        }
+    }
+
+    pub fn encoding(&self) -> Encoding {
+        match self {
+            // Move
+            Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
+            Opcode::MOVRM64R64 { r64: _, rm64: _ } => Encoding::MR,
+
+            // Push
+            Opcode::PUSHRM64 { rm64: _ } => Encoding::M,
+            Opcode::PUSHR64 { r64: _ } => Encoding::O,
+            Opcode::PUSHIMM32 { imm: _ } => Encoding::I,
         }
     }
 
@@ -34,6 +61,22 @@ impl Opcode {
                     b_bit: r64.is_expanded(),
                 })
             }
+
+            // Push
+            Opcode::PUSHRM64 { rm64: _ } => None,
+            Opcode::PUSHR64 { r64 } => {
+                if r64.is_expanded() {
+                    Some(REXPrefix {
+                        w_bit: false,
+                        r_bit: false,
+                        x_bit: false,
+                        b_bit: true,
+                    })
+                } else {
+                    None
+                }
+            }
+            Opcode::PUSHIMM32 { imm: _ } => None,
         }
     }
 
@@ -51,6 +94,12 @@ impl Opcode {
                 Some(ModRM::new_mr(rm64.addressing_mode(), rm64, r64))
             }
 
+            // Push
+            Opcode::PUSHRM64 { rm64 } => {
+                // Mだけど /6 でマスクするのでmr
+                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &Operand::GENERALREGISTER(GeneralPurposeRegister::RSI)))
+            }
+
             _ => None,
         }
     }
@@ -62,21 +111,32 @@ impl Opcode {
             // Move
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.get_displacement(),
             Opcode::MOVRM64R64 { rm64, r64: _ } => rm64.get_displacement(),
+
+            // Push
+            Opcode::PUSHRM64 { rm64 } => rm64.get_displacement(),
+            _ => None,
         }
     }
+
     pub fn get_immediate(&self) -> Option<Immediate> {
         match &self {
             // Move
-            Opcode::MOVRM8R8 { rm8: _, r8: _ } => None,
-            Opcode::MOVRM64R64 { rm64: _, r64: _ } => None,
+
+            // Push
+            Opcode::PUSHIMM32 { imm } => Some(*imm),
+            _ => None,
         }
     }
+
     #[allow(unreachable_patterns)]
     pub fn sib_bite(&self) -> Option<SIBByte> {
         match &self {
             // Move
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.sib_byte(),
             Opcode::MOVRM64R64 { rm64, r64: _ } => rm64.sib_byte(),
+
+            // Push
+            Opcode::PUSHRM64 { rm64 } => rm64.sib_byte(),
             _ => None,
         }
     }

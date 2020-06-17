@@ -42,30 +42,3 @@ impl fmt::Debug for SIBByte {
         write!(f, "SIB(base 0b{:b}: index 0b{:b}: {}x scale)", self.base_reg, self.index_reg, self.scale)
     }
 }
-
-#[cfg(test)]
-mod sib_byte_tests {
-    use super::*;
-
-    #[test]
-    fn display_sib_byte_test() {
-        let byte = SIBByte {
-            base_reg: 0,
-            index_reg: 2,
-            scale: 4,
-        };
-
-        assert_eq!("SIB(0b10010000)", format!("{}", byte).as_str())
-    }
-
-    #[test]
-    fn debug_sib_byte_test() {
-        let byte = SIBByte {
-            base_reg: 0,
-            index_reg: 2,
-            scale: 4,
-        };
-
-        assert_eq!("SIB(base 0b0: index 0b10: 4x scale)", format!("{:?}", byte).as_str())
-    }
-}

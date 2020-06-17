@@ -1,10 +1,8 @@
-
-use crate::{GeneralPurposeRegister, SIBByte, Immediate, AddressingMode, Displacement};
+use crate::{AddressingMode, Displacement, GeneralPurposeRegister, Immediate, SIBByte};
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Operand {
     // register operands
-
     GENERALREGISTER(GeneralPurposeRegister),
     // SEGMENT,
     // FLAGS,
@@ -12,8 +10,6 @@ pub enum Operand {
     // MMX
     // XMM
     // CONTROL
-
-
     /// memory addressing
     /// ex. [rax], -4[rbp]
     ADDRESSING {
@@ -28,12 +24,16 @@ pub enum Operand {
     LABEL(String),
     Immediate(Immediate),
 }
-
 impl Operand {
     /// メモリアドレッシングかチェック
     pub fn is_addressing(&self) -> bool {
         match self {
-            Operand::ADDRESSING { base_reg: _, index_reg: _, displacement: _, scale: _ } => true,
+            Operand::ADDRESSING {
+                base_reg: _,
+                index_reg: _,
+                displacement: _,
+                scale: _,
+            } => true,
             _ => false,
         }
     }
@@ -41,7 +41,12 @@ impl Operand {
     /// REX-Prefix の計算に使用
     pub fn is_expanded(&self) -> bool {
         match self {
-            Operand::ADDRESSING { base_reg: _, index_reg, displacement: _, scale: _ } => {
+            Operand::ADDRESSING {
+                base_reg: _,
+                index_reg,
+                displacement: _,
+                scale: _,
+            } => {
                 if index_reg.is_none() {
                     return false;
                 }
@@ -56,7 +61,12 @@ impl Operand {
     /// REX-Prefix のx_bitの計算に使用
     pub fn index_reg_is_expanded(&self) -> bool {
         match self {
-            Operand::ADDRESSING { base_reg: _, index_reg, displacement: _, scale: _ } => {
+            Operand::ADDRESSING {
+                base_reg: _,
+                index_reg,
+                displacement: _,
+                scale: _,
+            } => {
                 if index_reg.is_none() {
                     return false;
                 }
@@ -115,9 +125,12 @@ impl Operand {
     /// SIB-Byteを必要とするかチェック
     pub fn req_sib_byte(&self) -> bool {
         match self {
-            Operand::ADDRESSING { base_reg: _, index_reg, displacement: _, scale: _ } => {
-                index_reg.is_some()
-            }
+            Operand::ADDRESSING {
+                base_reg: _,
+                index_reg,
+                displacement: _,
+                scale: _,
+            } => index_reg.is_some(),
 
             _ => false,
         }
@@ -128,7 +141,12 @@ impl Operand {
     pub fn number(&self) -> u8 {
         match self {
             Self::GENERALREGISTER(reg) => reg.number(),
-            Self::ADDRESSING { base_reg, index_reg: _, displacement: _, scale: _ } => base_reg.number(),
+            Self::ADDRESSING {
+                base_reg,
+                index_reg: _,
+                displacement: _,
+                scale: _,
+            } => base_reg.number(),
             _ => panic!("cannot get register-number from {:?}", self),
         }
     }
@@ -136,7 +154,12 @@ impl Operand {
     /// get addressing mode in ModRM:mode
     pub fn addressing_mode(&self) -> AddressingMode {
         match self {
-            Operand::ADDRESSING { base_reg: _, index_reg: _, displacement, scale: _ } => {
+            Operand::ADDRESSING {
+                base_reg: _,
+                index_reg: _,
+                displacement,
+                scale: _,
+            } => {
                 if displacement.is_none() {
                     return AddressingMode::REGISTER;
                 }
@@ -154,10 +177,24 @@ impl Operand {
 
     /// メモリアドレッシングの情報を取得する
     /// is_addressing() を先に呼ぶ必要がある
-    pub fn get_addressing(&self) -> (GeneralPurposeRegister, Option<GeneralPurposeRegister>, Option<Displacement>, Option<u8>) {
+    pub fn get_addressing(
+        &self,
+    ) -> (
+        GeneralPurposeRegister,
+        Option<GeneralPurposeRegister>,
+        Option<Displacement>,
+        Option<u8>,
+    ) {
         match self {
-            Operand::ADDRESSING { base_reg, index_reg, displacement, scale } => (*base_reg, *index_reg, *displacement, *scale),
-            _ => panic!("cannot get addressing materials. check 'is_addressing()' before calling this."),
+            Operand::ADDRESSING {
+                base_reg,
+                index_reg,
+                displacement,
+                scale,
+            } => (*base_reg, *index_reg, *displacement, *scale),
+            _ => panic!(
+                "cannot get addressing materials. check 'is_addressing()' before calling this."
+            ),
         }
     }
 }
