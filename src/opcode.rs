@@ -9,6 +9,9 @@ pub enum Opcode {
     /// Move r64 to r/m64
     MOVRM64R64 { r64: Operand, rm64: Operand },
 
+    /// Move imm32 to r/m64
+    MOVRM64IMM32 { imm: Immediate, rm64: Operand },
+
     // Push
     /// Push r/m64
     PUSHRM64 { rm64: Operand },
@@ -25,6 +28,7 @@ impl Opcode {
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => vec![0x88],
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => vec![0x89],
+            Opcode::MOVRM64IMM32 { imm: _, rm64: _ } => vec![0xc7],
 
             // Push
 
@@ -39,6 +43,7 @@ impl Opcode {
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => Encoding::MR,
+            Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => Encoding::MI,
 
             // Push
             Opcode::PUSHRM64 { rm64: _ } => Encoding::M,
@@ -60,6 +65,17 @@ impl Opcode {
                     x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
                     b_bit: r64.is_expanded(),
                 })
+            }
+            Opcode::MOVRM64IMM32 { rm64, imm: _ } => {
+                Some(
+                    REXPrefix {
+                        w_bit: true,
+                        r_bit: rm64.is_expanded(),
+                        // req_sib_byte() でindexフィールドが
+                        x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                        b_bit: false,
+                    }
+                )
             }
 
             // Push
@@ -93,6 +109,10 @@ impl Opcode {
                 // MR
                 Some(ModRM::new_mr(rm64.addressing_mode(), rm64, r64))
             }
+            Opcode::MOVRM64IMM32 { rm64, imm: _ } => {
+                // MI( /0 マスクなのでそのままMIで )
+                Some(ModRM::new_mi(rm64.addressing_mode(), rm64))
+            }
 
             // Push
             Opcode::PUSHRM64 { rm64 } => {
@@ -121,6 +141,7 @@ impl Opcode {
     pub fn get_immediate(&self) -> Option<Immediate> {
         match &self {
             // Move
+            Opcode::MOVRM64IMM32 { rm64: _, imm } => Some(*imm),
 
             // Push
             Opcode::PUSHIMM32 { imm } => Some(*imm),
@@ -128,7 +149,6 @@ impl Opcode {
         }
     }
 
-    #[allow(unreachable_patterns)]
     pub fn sib_bite(&self) -> Option<SIBByte> {
         match &self {
             // Move
@@ -138,6 +158,52 @@ impl Opcode {
             // Push
             Opcode::PUSHRM64 { rm64 } => rm64.sib_byte(),
             _ => None,
+        }
+    }
+
+    /// to Intel syntax.
+    pub fn to_intel_string(&self) -> String {
+        match &self {
+            // Move
+            Opcode::MOVRM8R8 { rm8, r8 } => {
+                format!("mov {}, {}", rm8.to_intel_string(), r8.to_intel_string())
+            }
+            Opcode::MOVRM64R64 { rm64, r64 } => {
+                format!("mov {}, {}", rm64.to_intel_string(), r64.to_intel_string())
+            }
+            Opcode::MOVRM64IMM32 { rm64, imm } => {
+                format!("mov {}, {}", rm64.to_intel_string(), imm.to_intel_string())
+            }
+
+            // Push
+            Opcode::PUSHRM64 { rm64 } => {
+                format!("push {}", rm64.to_intel_string())
+            }
+            Opcode::PUSHR64 { r64 } => format!("push {}", r64.to_intel_string()),
+            Opcode::PUSHIMM32 { imm } => format!("push {}", imm.to_intel_string()),
+        }
+    }
+
+    /// to AT&T syntax.
+    pub fn to_at_string(&self) -> String {
+        match &self {
+            // Move
+            Opcode::MOVRM8R8 { rm8, r8 } => {
+                format!("movb {}, {}", r8.to_at_string(), rm8.to_at_string())
+            }
+            Opcode::MOVRM64R64 { rm64, r64 } => {
+                format!("movq {}, {}", r64.to_at_string(), rm64.to_at_string())
+            }
+            Opcode::MOVRM64IMM32 { rm64, imm } => {
+                format!("movq {}, {}", imm.to_at_string(), rm64.to_at_string())
+            }
+
+            // Push
+            Opcode::PUSHRM64 { rm64 } => {
+                format!("pushq {}", rm64.to_at_string())
+            }
+            Opcode::PUSHR64 { r64 } => format!("pushq {}", r64.to_at_string()),
+            Opcode::PUSHIMM32 { imm } => format!("pushq {}", imm.to_at_string()),
         }
     }
 }

@@ -7,7 +7,6 @@ pub struct Instruction {
 }
 
 impl Instruction {
-
     // assembling for each instructions.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut codes = Vec::new();
@@ -36,4 +35,13 @@ impl Instruction {
         codes
     }
 
+    /// to Intel syntax.
+    pub fn to_intel_string(&self) -> String {
+        self.opcode.to_intel_string()
+    }
+
+    /// to AT&T syntax.
+    pub fn to_at_string(&self) -> String {
+        self.opcode.to_at_string()
+    }
 }

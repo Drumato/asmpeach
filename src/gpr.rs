@@ -58,21 +58,18 @@ impl GeneralPurposeRegister {
         }
     }
 
-    #[allow(clippy::match_single_binding)]
-    pub fn is_8bit(&self) -> bool {
+    pub fn size(&self) -> RegisterSize {
         match self {
-            _ => false,
+            GeneralPurposeRegister::AL
+            | GeneralPurposeRegister::CL
+            | GeneralPurposeRegister::DL
+            | GeneralPurposeRegister::BL
+            | GeneralPurposeRegister::AH
+            | GeneralPurposeRegister::CH
+            | GeneralPurposeRegister::DH
+            | GeneralPurposeRegister::BH => RegisterSize::S8,
+            _ => RegisterSize::S64,
         }
-    }
-
-    /// creating str for AT&T syntax
-    pub fn to_at(&self) -> String {
-        format!("%{}", self.to_str())
-    }
-
-    /// creating str for Intel syntax
-    pub fn to_intel(&self) -> String {
-        self.to_str().to_string()
     }
 
     /// check whether a register is expanded after x64.
@@ -117,10 +114,40 @@ impl GeneralPurposeRegister {
             Self::R15 => "r15",
         }
     }
+
+    pub fn to_64bit(&self) -> Self {
+        match self {
+            // 8bit general-purpose registers
+            GeneralPurposeRegister::AH | GeneralPurposeRegister::AL => Self::RAX,
+            GeneralPurposeRegister::BH | GeneralPurposeRegister::BL => Self::RBX,
+            GeneralPurposeRegister::CH | GeneralPurposeRegister::CL => Self::RCX,
+            GeneralPurposeRegister::DH | GeneralPurposeRegister::DL => Self::RDX,
+
+
+            // 64bit general-purpose registers
+            _ => *self,
+        }
+    }
+
+    pub fn to_intel_string(&self) -> String {
+        self.to_str().to_string()
+    }
+
+    pub fn to_at_string(&self) -> String {
+        format!("%{}", self.to_str())
+    }
 }
 
 impl fmt::Display for GeneralPurposeRegister {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Register::{}", self.to_at())
+        write!(f, "Register::{}", self.to_str())
     }
+}
+
+#[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
+pub enum RegisterSize {
+    S8,
+    S16,
+    S32,
+    S64,
 }

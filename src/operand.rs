@@ -1,4 +1,4 @@
-use crate::{AddressingMode, Displacement, GeneralPurposeRegister, Immediate, SIBByte};
+use crate::{AddressingMode, Displacement, GeneralPurposeRegister, Immediate, SIBByte, RegisterSize};
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Operand {
@@ -10,6 +10,7 @@ pub enum Operand {
     // MMX
     // XMM
     // CONTROL
+
     /// memory addressing
     /// ex. [rax], -4[rbp]
     ADDRESSING {
@@ -24,6 +25,7 @@ pub enum Operand {
     LABEL(String),
     Immediate(Immediate),
 }
+
 impl Operand {
     /// メモリアドレッシングかチェック
     pub fn is_addressing(&self) -> bool {
@@ -195,6 +197,75 @@ impl Operand {
             _ => panic!(
                 "cannot get addressing materials. check 'is_addressing()' before calling this."
             ),
+        }
+    }
+
+    pub fn to_intel_string(&self) -> String {
+        match self {
+            Operand::GENERALREGISTER(gpr) => gpr.to_intel_string(),
+            Operand::Immediate(imm) => imm.to_intel_string(),
+            Operand::LABEL(s) => s.to_string(),
+            Operand::ADDRESSING {
+                base_reg,
+                index_reg,
+                displacement,
+                scale
+            } => {
+                let size_ptr = match base_reg.size() {
+                    RegisterSize::S8 => "BYTE PTR",
+                    RegisterSize::S16 => "WORD PTR",
+                    RegisterSize::S32 => "DWORD PTR",
+                    RegisterSize::S64 => "QWORD PTR",
+                };
+
+                let mut addressing = if displacement.is_some() {
+                    format!("{}[", displacement.unwrap().to_string())
+                } else {
+                    "[".to_string()
+                };
+                addressing += &base_reg.to_64bit().to_intel_string();
+
+                if let Some(index) = index_reg {
+                    addressing += &format!(" + {}", index.to_intel_string());
+                }
+                if let Some(s) = scale {
+                    addressing += &format!(" * {}", s);
+                }
+                addressing += "]";
+
+                format!("{} {}", size_ptr, addressing)
+            }
+        }
+    }
+
+    pub fn to_at_string(&self) -> String {
+        match self {
+            Operand::GENERALREGISTER(gpr) => gpr.to_at_string(),
+            Operand::Immediate(imm) => imm.to_at_string(),
+            Operand::LABEL(s) => s.to_string(),
+            Operand::ADDRESSING {
+                base_reg,
+                index_reg,
+                displacement,
+                scale
+            } => {
+                let disp_str = if displacement.is_some() {
+                    displacement.unwrap().to_string()
+                } else {
+                    String::new()
+                };
+
+                let mut addressing = base_reg.to_64bit().to_at_string();
+
+                if let Some(index) = index_reg {
+                    addressing += &format!(", {}", index.to_at_string());
+                }
+                if let Some(s) = scale {
+                    addressing += &format!(", {}", s);
+                }
+
+                format!("{}({})", disp_str, addressing)
+            }
         }
     }
 }

@@ -1,3 +1,6 @@
+use std::fmt;
+use fmt::Formatter;
+
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum Immediate {
     I8(i8),
@@ -9,6 +12,23 @@ impl Immediate {
         match self {
             Immediate::I8(v8) => vec![*v8 as u8],
             Immediate::I32(v32) => (*v32 as u32).to_le_bytes().to_vec(),
+        }
+    }
+
+    pub fn to_intel_string(&self) -> String {
+        self.to_string()
+    }
+
+    pub fn to_at_string(&self) -> String {
+        format!("${}", self.to_string())
+    }
+}
+
+impl fmt::Display for Immediate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Immediate::I8(v8) => write!(f, "{}", v8),
+            Immediate::I32(v32) => write!(f, "{}", v32),
         }
     }
 }
