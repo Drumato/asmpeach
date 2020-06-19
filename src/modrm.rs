@@ -1,4 +1,4 @@
-use crate::{Operand};
+use crate::{Operand, GeneralPurposeRegister};
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub struct ModRM {
@@ -26,7 +26,20 @@ impl ModRM {
         }
     }
     /// new MR Encoding.
-    pub fn new_mr(mode: AddressingMode, rm: &Operand, reg: &Operand) -> Self {
+    pub fn new_mr(mode: AddressingMode, rm: &Operand, reg: &GeneralPurposeRegister) -> Self {
+        let rm_byte = if rm.req_sib_byte() {
+            0x04
+        } else {
+            rm.number()
+        };
+        Self {
+            mode,
+            rm: Self::rm_field(rm_byte),
+            reg: Self::reg_field(reg.number()),
+        }
+    }
+    /// new RM Encoding.
+    pub fn new_rm(mode: AddressingMode, reg: &GeneralPurposeRegister, rm: &Operand) -> Self {
         let rm_byte = if rm.req_sib_byte() {
             0x04
         } else {

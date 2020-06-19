@@ -5,7 +5,7 @@ const MOVRM8R8_CASES: [Instruction; 2] = [
     Instruction {
         opcode: Opcode::MOVRM8R8 {
             rm8: Operand::GENERALREGISTER(GeneralPurposeRegister::BH),
-            r8: Operand::GENERALREGISTER(GeneralPurposeRegister::AH),
+            r8: GeneralPurposeRegister::AH,
         },
     },
     Instruction {
@@ -16,7 +16,7 @@ const MOVRM8R8_CASES: [Instruction; 2] = [
                 displacement: None,
                 scale: None,
             },
-            r8: Operand::GENERALREGISTER(GeneralPurposeRegister::BH),
+            r8: GeneralPurposeRegister::BH,
         },
     }
 ];
@@ -26,7 +26,7 @@ const MOVRM64R64_CASES: [Instruction; 2] = [
     Instruction {
         opcode: Opcode::MOVRM64R64 {
             rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
-            r64: Operand::GENERALREGISTER(GeneralPurposeRegister::RCX),
+            r64: GeneralPurposeRegister::RCX,
         }
     },
     Instruction {
@@ -37,7 +37,7 @@ const MOVRM64R64_CASES: [Instruction; 2] = [
                 displacement: None,
                 scale: Some(0x4),
             },
-            r64: Operand::GENERALREGISTER(GeneralPurposeRegister::RCX),
+            r64: GeneralPurposeRegister::RCX,
         }
     },
 ];
