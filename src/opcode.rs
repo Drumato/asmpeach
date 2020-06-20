@@ -19,6 +19,10 @@ pub enum Opcode {
     /// Move imm32 to r/m64
     MOVRM64IMM32 { imm: Immediate, rm64: Operand },
 
+    // Pop
+    /// Pop top of stack into r64; increment stack pointer; Cannot encode 32-bit operand size.
+    POPR64 { r64: GeneralPurposeRegister },
+
     // Push
     /// Push r/m64
     PUSHRM64 { rm64: Operand },
@@ -51,6 +55,9 @@ impl Opcode {
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => vec![0x89],
             Opcode::MOVRM64IMM32 { imm: _, rm64: _ } => vec![0xc7],
 
+            // Pop
+            Opcode::POPR64 { r64 } => vec![0x58 + r64.number()],
+
             // Push
             Opcode::PUSHRM64 { rm64: _ } => vec![0xff],
             Opcode::PUSHR64 { r64 } => vec![0x50 + r64.number()],
@@ -73,6 +80,9 @@ impl Opcode {
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => Encoding::MR,
             Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => Encoding::MI,
+
+            // Pop
+            Opcode::POPR64 { r64: _ } => Encoding::O,
 
             // Push
             Opcode::PUSHRM64 { rm64: _ } => Encoding::M,
@@ -124,6 +134,20 @@ impl Opcode {
                         b_bit: false,
                     }
                 )
+            }
+
+            // Pop
+            Opcode::POPR64 { r64 } => {
+                if r64.is_expanded() {
+                    Some(REXPrefix {
+                        w_bit: false,
+                        r_bit: false,
+                        x_bit: false,
+                        b_bit: true,
+                    })
+                } else {
+                    None
+                }
             }
 
             // Push
@@ -199,6 +223,8 @@ impl Opcode {
                 Some(ModRM::new_mi(rm64.addressing_mode(), rm64))
             }
 
+            // Pop
+
             // Push
             Opcode::PUSHRM64 { rm64 } => {
                 // Mだけど /6 でマスクするのでmr
@@ -235,6 +261,9 @@ impl Opcode {
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.get_displacement(),
             Opcode::MOVRM64R64 { rm64, r64: _ } => rm64.get_displacement(),
 
+            // Pop
+
+
             // Push
             Opcode::PUSHRM64 { rm64 } => rm64.get_displacement(),
 
@@ -270,6 +299,8 @@ impl Opcode {
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.sib_byte(),
             Opcode::MOVRM64R64 { rm64, r64: _ } => rm64.sib_byte(),
 
+            // Pop
+
             // Push
             Opcode::PUSHRM64 { rm64 } => rm64.sib_byte(),
 
@@ -301,6 +332,11 @@ impl Opcode {
             }
             Opcode::MOVRM64IMM32 { rm64, imm } => {
                 format!("mov {}, {}", rm64.to_intel_string(), imm.to_intel_string())
+            }
+
+            // Pop
+            Opcode::POPR64 { r64 } => {
+                format!("pop {}", r64.to_intel_string())
             }
 
             // Push
@@ -343,6 +379,11 @@ impl Opcode {
             }
             Opcode::MOVRM64IMM32 { rm64, imm } => {
                 format!("movq {}, {}", imm.to_at_string(), rm64.to_at_string())
+            }
+
+            // Pop
+            Opcode::POPR64 { r64 } => {
+                format!("popq {}", r64.to_at_string())
             }
 
             // Push
