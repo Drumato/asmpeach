@@ -115,6 +115,20 @@ impl GeneralPurposeRegister {
         }
     }
 
+    pub fn new_64bit_from_code(code: usize) -> Self {
+        match code {
+            0 => GeneralPurposeRegister::RAX,
+            1 => GeneralPurposeRegister::RCX,
+            2 => GeneralPurposeRegister::RDX,
+            3 => GeneralPurposeRegister::RBX,
+            4 => GeneralPurposeRegister::RSP,
+            5 => GeneralPurposeRegister::RBP,
+            6 => GeneralPurposeRegister::RSI,
+            7 => GeneralPurposeRegister::RDI,
+            _ => unimplemented!(),
+        }
+    }
+
     pub fn to_64bit(&self) -> Self {
         match self {
             // 8bit general-purpose registers

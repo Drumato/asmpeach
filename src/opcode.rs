@@ -9,6 +9,9 @@ pub enum Opcode {
     // Add r64 to r/m64
     ADDR64RM64 { r64: GeneralPurposeRegister, rm64: Operand },
 
+    // Increment
+    INCRM64 { rm64: Operand },
+
     // Move
     /// Move r8 to r/m8
     MOVRM8R8 { r8: GeneralPurposeRegister, rm8: Operand },
@@ -18,6 +21,10 @@ pub enum Opcode {
 
     /// Move imm32 to r/m64
     MOVRM64IMM32 { imm: Immediate, rm64: Operand },
+
+    // Neg
+    /// Two's complement negate r/m64
+    NEGRM64 { rm64: Operand },
 
     // Pop
     /// Pop top of stack into r64; increment stack pointer; Cannot encode 32-bit operand size.
@@ -50,10 +57,16 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64: _, r64: _ } => vec![0x01],
             Opcode::ADDR64RM64 { r64: _, rm64: _ } => vec![0x03],
 
+            // Increment
+            Opcode::INCRM64 { rm64: _ } => vec![0xff],
+
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => vec![0x88],
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => vec![0x89],
             Opcode::MOVRM64IMM32 { imm: _, rm64: _ } => vec![0xc7],
+
+            // Neg
+            Opcode::NEGRM64 { rm64: _ } => vec![0xf7],
 
             // Pop
             Opcode::POPR64 { r64 } => vec![0x58 + r64.number()],
@@ -76,10 +89,16 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64: _, r64: _ } => Encoding::MR,
             Opcode::ADDR64RM64 { r64: _, rm64: _ } => Encoding::RM,
 
+            // Increment
+            Opcode::INCRM64 { rm64:_     } => Encoding::M,
+
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => Encoding::MR,
             Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => Encoding::MI,
+
+            // Neg
+            Opcode::NEGRM64 { rm64: _ } => Encoding::M,
 
             // Pop
             Opcode::POPR64 { r64: _ } => Encoding::O,
@@ -113,6 +132,14 @@ impl Opcode {
                 b_bit: r64.is_expanded(),
             }),
 
+            // Increment
+            Opcode::INCRM64 { rm64 } => Some(REXPrefix {
+                w_bit: true,
+                r_bit: rm64.is_expanded(),
+                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                b_bit: false,
+            }),
+
             // Move
             Opcode::MOVRM8R8 { rm8: _, r8: _ } => None,
             Opcode::MOVRM64R64 { rm64, r64 } => {
@@ -134,6 +161,16 @@ impl Opcode {
                         b_bit: false,
                     }
                 )
+            }
+
+            // Neg
+            Opcode::NEGRM64 { rm64 } => {
+                Some(REXPrefix {
+                    w_bit: true,
+                    r_bit: rm64.is_expanded(),
+                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                    b_bit: false,
+                })
             }
 
             // Pop
@@ -209,6 +246,12 @@ impl Opcode {
                 Some(ModRM::new_rm(rm64.addressing_mode(), r64, rm64))
             }
 
+            // Increment
+            Opcode::INCRM64 { rm64 } => {
+                // Mだけど /0 なのでマスク
+                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::new_64bit_from_code(0)))
+            }
+
             // Move
             Opcode::MOVRM8R8 { rm8, r8 } => {
                 // MR
@@ -223,18 +266,24 @@ impl Opcode {
                 Some(ModRM::new_mi(rm64.addressing_mode(), rm64))
             }
 
+            // Neg
+            Opcode::NEGRM64 { rm64 } => {
+                // Mだけど /3 でマスクするのでmr
+                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::new_64bit_from_code(3)))
+            }
+
             // Pop
 
             // Push
             Opcode::PUSHRM64 { rm64 } => {
                 // Mだけど /6 でマスクするのでmr
-                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::RSI))
+                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::new_64bit_from_code(6)))
             }
 
             // Sub
             Opcode::SUBRM64IMM32 { rm64, imm: _ } => {
                 // MIだけど /5 でマスクするのでmr
-                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::RBP))
+                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::new_64bit_from_code(5)))
             }
             Opcode::SUBR64RM64 { r64, rm64 } => {
                 // RM
@@ -257,9 +306,15 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64, r64: _ } => rm64.get_displacement(),
             Opcode::ADDR64RM64 { r64: _, rm64 } => rm64.get_displacement(),
 
+            // Increment
+            Opcode::INCRM64 { rm64 } => rm64.get_displacement(),
+
             // Move
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.get_displacement(),
             Opcode::MOVRM64R64 { rm64, r64: _ } => rm64.get_displacement(),
+
+            // Neg
+            Opcode::NEGRM64 { rm64 } => rm64.get_displacement(),
 
             // Pop
 
@@ -295,9 +350,15 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64, r64: _ } => rm64.sib_byte(),
             Opcode::ADDR64RM64 { r64: _, rm64 } => rm64.sib_byte(),
 
+            // Increment
+            Opcode::INCRM64 { rm64 } => rm64.sib_byte(),
+
             // Move
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.sib_byte(),
             Opcode::MOVRM64R64 { rm64, r64: _ } => rm64.sib_byte(),
+
+            // Neg
+            Opcode::NEGRM64 { rm64 } => rm64.sib_byte(),
 
             // Pop
 
@@ -323,6 +384,11 @@ impl Opcode {
                 format!("add {}, {}", r64.to_intel_string(), rm64.to_intel_string())
             }
 
+            // Increment
+            Opcode::INCRM64 {rm64} => {
+                format!("inc {}" , rm64.to_intel_string())
+            }
+
             // Move
             Opcode::MOVRM8R8 { rm8, r8 } => {
                 format!("mov {}, {}", rm8.to_intel_string(), r8.to_intel_string())
@@ -332,6 +398,11 @@ impl Opcode {
             }
             Opcode::MOVRM64IMM32 { rm64, imm } => {
                 format!("mov {}, {}", rm64.to_intel_string(), imm.to_intel_string())
+            }
+
+            // Neg
+            Opcode::NEGRM64 { rm64 } => {
+                format!("neg {}", rm64.to_intel_string())
             }
 
             // Pop
@@ -370,6 +441,11 @@ impl Opcode {
                 format!("addq {}, {}", rm64.to_at_string(), r64.to_at_string())
             }
 
+            // Increment
+            Opcode::INCRM64 {rm64} => {
+                format!("incq {}" , rm64.to_at_string())
+            }
+
             // Move
             Opcode::MOVRM8R8 { rm8, r8 } => {
                 format!("movb {}, {}", r8.to_at_string(), rm8.to_at_string())
@@ -379,6 +455,11 @@ impl Opcode {
             }
             Opcode::MOVRM64IMM32 { rm64, imm } => {
                 format!("movq {}, {}", imm.to_at_string(), rm64.to_at_string())
+            }
+
+            // Neg
+            Opcode::NEGRM64 { rm64 } => {
+                format!("negq {}", rm64.to_at_string())
             }
 
             // Pop
