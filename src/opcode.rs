@@ -27,6 +27,16 @@ pub enum Opcode {
     PUSHR64 { r64: GeneralPurposeRegister },
     /// Push imm32
     PUSHIMM32 { imm: Immediate },
+
+    // Sub
+    /// Subtract r/m64 from r64
+    SUBR64RM64 { r64: GeneralPurposeRegister, rm64: Operand },
+
+    /// Subtract r64 from r/m64
+    SUBRM64R64 { rm64: Operand, r64: GeneralPurposeRegister },
+
+    /// Subtract imm32 from r/m64
+    SUBRM64IMM32 { rm64: Operand, imm: Immediate },
 }
 
 impl Opcode {
@@ -42,10 +52,14 @@ impl Opcode {
             Opcode::MOVRM64IMM32 { imm: _, rm64: _ } => vec![0xc7],
 
             // Push
-
             Opcode::PUSHRM64 { rm64: _ } => vec![0xff],
             Opcode::PUSHR64 { r64 } => vec![0x50 + r64.number()],
             Opcode::PUSHIMM32 { imm: _ } => vec![0x68],
+
+            // Sub
+            Opcode::SUBRM64IMM32 { rm64: _, imm: _ } => vec![0x81],
+            Opcode::SUBR64RM64 { r64: _, rm64: _ } => vec![0x2b],
+            Opcode::SUBRM64R64 { rm64: _, r64: _ } => vec![0x29],
         }
     }
 
@@ -64,6 +78,11 @@ impl Opcode {
             Opcode::PUSHRM64 { rm64: _ } => Encoding::M,
             Opcode::PUSHR64 { r64: _ } => Encoding::O,
             Opcode::PUSHIMM32 { imm: _ } => Encoding::I,
+
+            // Sub
+            Opcode::SUBRM64IMM32 { rm64: _, imm: _ } => Encoding::MI,
+            Opcode::SUBR64RM64 { r64: _, rm64: _ } => Encoding::RM,
+            Opcode::SUBRM64R64 { rm64: _, r64: _ } => Encoding::MR,
         }
     }
 
@@ -122,6 +141,33 @@ impl Opcode {
                 }
             }
             Opcode::PUSHIMM32 { imm: _ } => None,
+
+            // Sub
+            Opcode::SUBRM64IMM32 { rm64, imm: _ } => Some(
+                REXPrefix {
+                    w_bit: true,
+                    r_bit: rm64.is_expanded(),
+                    // req_sib_byte() でindexフィールドが
+                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                    b_bit: false,
+                }
+            ),
+            Opcode::SUBR64RM64 { r64, rm64 } => Some(
+                REXPrefix {
+                    w_bit: true,
+                    r_bit: rm64.is_expanded(),
+                    // req_sib_byte() でindexフィールドが
+                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                    b_bit: r64.is_expanded(),
+                }
+            ),
+            Opcode::SUBRM64R64 { rm64, r64 } => Some(REXPrefix {
+                w_bit: true,
+                r_bit: rm64.is_expanded(),
+                // req_sib_byte() でindexフィールドが
+                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                b_bit: r64.is_expanded(),
+            }),
         }
     }
 
@@ -159,6 +205,20 @@ impl Opcode {
                 Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::RSI))
             }
 
+            // Sub
+            Opcode::SUBRM64IMM32 { rm64, imm: _ } => {
+                // MIだけど /5 でマスクするのでmr
+                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::RBP))
+            }
+            Opcode::SUBR64RM64 { r64, rm64 } => {
+                // RM
+                Some(ModRM::new_rm(rm64.addressing_mode(), r64, rm64))
+            }
+            Opcode::SUBRM64R64 { rm64, r64 } => {
+                // MR
+                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, r64))
+            }
+
             _ => None,
         }
     }
@@ -177,6 +237,11 @@ impl Opcode {
 
             // Push
             Opcode::PUSHRM64 { rm64 } => rm64.get_displacement(),
+
+            // Sub
+            Opcode::SUBRM64R64 { rm64, r64: _ } => rm64.get_displacement(),
+            Opcode::SUBRM64IMM32 { rm64, imm: _ } => rm64.get_displacement(),
+            Opcode::SUBR64RM64 { r64: _, rm64 } => rm64.get_displacement(),
             _ => None,
         }
     }
@@ -188,6 +253,9 @@ impl Opcode {
 
             // Push
             Opcode::PUSHIMM32 { imm } => Some(*imm),
+
+            // Sub
+            Opcode::SUBRM64IMM32 { rm64: _, imm } => Some(*imm),
             _ => None,
         }
     }
@@ -204,6 +272,11 @@ impl Opcode {
 
             // Push
             Opcode::PUSHRM64 { rm64 } => rm64.sib_byte(),
+
+            // Sub
+            Opcode::SUBRM64IMM32 { rm64, imm: _ } => rm64.sib_byte(),
+            Opcode::SUBRM64R64 { rm64, r64: _ } => rm64.sib_byte(),
+            Opcode::SUBR64RM64 { r64: _, rm64 } => rm64.sib_byte(),
             _ => None,
         }
     }
@@ -236,6 +309,17 @@ impl Opcode {
             }
             Opcode::PUSHR64 { r64 } => format!("push {}", r64.to_intel_string()),
             Opcode::PUSHIMM32 { imm } => format!("push {}", imm.to_intel_string()),
+
+            // Sub
+            Opcode::SUBRM64IMM32 { rm64, imm } => {
+                format!("sub {}, {}", rm64.to_intel_string(), imm.to_intel_string())
+            }
+            Opcode::SUBR64RM64 { r64, rm64 } => {
+                format!("sub {}, {}", r64.to_intel_string(), rm64.to_intel_string())
+            }
+            Opcode::SUBRM64R64 { rm64, r64 } => {
+                format!("sub {}, {}", rm64.to_intel_string(), r64.to_intel_string())
+            }
         }
     }
 
@@ -267,6 +351,17 @@ impl Opcode {
             }
             Opcode::PUSHR64 { r64 } => format!("pushq {}", r64.to_at_string()),
             Opcode::PUSHIMM32 { imm } => format!("pushq {}", imm.to_at_string()),
+
+            // Sub
+            Opcode::SUBRM64IMM32 { rm64, imm } => {
+                format!("subq {}, {}", imm.to_at_string(), rm64.to_at_string())
+            }
+            Opcode::SUBR64RM64 { r64, rm64 } => {
+                format!("subq {}, {}", rm64.to_at_string(), r64.to_at_string())
+            }
+            Opcode::SUBRM64R64 { rm64, r64 } => {
+                format!("subq {}, {}", r64.to_at_string(), rm64.to_at_string())
+            }
         }
     }
 }
