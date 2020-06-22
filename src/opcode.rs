@@ -6,10 +6,20 @@ pub enum Opcode {
     /// Add r/m64 to r64
     ADDRM64R64 { rm64: Operand, r64: GeneralPurposeRegister },
 
-    // Add r64 to r/m64
+    /// Add r64 to r/m64
     ADDR64RM64 { r64: GeneralPurposeRegister, rm64: Operand },
 
+    // (signed) Integer Divide
+    /// signed divide RDX:RAX by r/m64;
+    /// result stored in RAX := Quotient, RDX := Remainder.
+    IDIVRM64 { rm64: Operand },
+
+    // (signed) Integer Multiply
+    /// Quadword register := Quadword register * r/m64
+    IMULR64RM64 { r64: GeneralPurposeRegister, rm64: Operand },
+
     // Increment
+    /// increment r/m64 by one.
     INCRM64 { rm64: Operand },
 
     // Move
@@ -57,6 +67,12 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64: _, r64: _ } => vec![0x01],
             Opcode::ADDR64RM64 { r64: _, rm64: _ } => vec![0x03],
 
+            // (signed) Integer Divide
+            Opcode::IDIVRM64 { rm64: _ } => vec![0xf7],
+
+            // (signed) Integer Multiply
+            Opcode::IMULR64RM64 { r64: _, rm64: _ } => vec![0x0f, 0xaf],
+
             // Increment
             Opcode::INCRM64 { rm64: _ } => vec![0xff],
 
@@ -89,8 +105,14 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64: _, r64: _ } => Encoding::MR,
             Opcode::ADDR64RM64 { r64: _, rm64: _ } => Encoding::RM,
 
+            // (signed) Integer Divide
+            Opcode::IDIVRM64 { rm64: _ } => Encoding::M,
+
+            // (signed) Integer Multiply
+            Opcode::IMULR64RM64 { r64: _, rm64: _ } => Encoding::RM,
+
             // Increment
-            Opcode::INCRM64 { rm64:_     } => Encoding::M,
+            Opcode::INCRM64 { rm64: _ } => Encoding::M,
 
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
@@ -130,6 +152,22 @@ impl Opcode {
                 r_bit: rm64.is_expanded(),
                 x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
                 b_bit: r64.is_expanded(),
+            }),
+
+            // (signed) Integer Multiply
+            Opcode::IMULR64RM64 { r64, rm64 } => Some(REXPrefix {
+                w_bit: true,
+                r_bit: rm64.is_expanded(),
+                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                b_bit: r64.is_expanded(),
+            }),
+
+            // (signed) Integer Divide
+            Opcode::IDIVRM64 { rm64 } => Some(REXPrefix {
+                w_bit: true,
+                r_bit: rm64.is_expanded(),
+                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                b_bit: false,
             }),
 
             // Increment
@@ -246,6 +284,19 @@ impl Opcode {
                 Some(ModRM::new_rm(rm64.addressing_mode(), r64, rm64))
             }
 
+            // (signed) Integer Divide
+            Opcode::IDIVRM64 { rm64 } => {
+                // Mだけど /7 でマスク
+                Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::new_64bit_from_code(7)))
+            }
+
+            // (signed) Integer Multiply
+            Opcode::IMULR64RM64 { r64, rm64 } => {
+                // RM
+                Some(ModRM::new_rm(rm64.addressing_mode(), r64, rm64))
+            }
+
+
             // Increment
             Opcode::INCRM64 { rm64 } => {
                 // Mだけど /0 なのでマスク
@@ -306,6 +357,12 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64, r64: _ } => rm64.get_displacement(),
             Opcode::ADDR64RM64 { r64: _, rm64 } => rm64.get_displacement(),
 
+            // (signed) Integer Divide
+            Opcode::IDIVRM64 { rm64 } => rm64.get_displacement(),
+
+            // (signed) Integer Multiply
+            Opcode::IMULR64RM64 { r64: _, rm64 } => rm64.get_displacement(),
+
             // Increment
             Opcode::INCRM64 { rm64 } => rm64.get_displacement(),
 
@@ -350,6 +407,12 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64, r64: _ } => rm64.sib_byte(),
             Opcode::ADDR64RM64 { r64: _, rm64 } => rm64.sib_byte(),
 
+            // (signed) Integer Divide
+            Opcode::IDIVRM64 { rm64 } => rm64.sib_byte(),
+
+            // (signed) Integer Multiply
+            Opcode::IMULR64RM64 { r64: _, rm64 } => rm64.sib_byte(),
+
             // Increment
             Opcode::INCRM64 { rm64 } => rm64.sib_byte(),
 
@@ -376,56 +439,45 @@ impl Opcode {
     /// to Intel syntax.
     pub fn to_intel_string(&self) -> String {
         match &self {
-            // Add
-            Opcode::ADDRM64R64 { rm64, r64 } => {
-                format!("add {}, {}", rm64.to_intel_string(), r64.to_intel_string())
-            }
-            Opcode::ADDR64RM64 { r64, rm64 } => {
-                format!("add {}, {}", r64.to_intel_string(), rm64.to_intel_string())
+            // r64
+            Opcode::POPR64 { r64 }
+            | Opcode::PUSHR64 { r64 } => format!("{} {}", self.opcode_to_intel(), r64.to_intel_string()),
+
+            // imm32
+            Opcode::PUSHIMM32 { imm } => format!("{} {}", self.opcode_to_intel(), imm.to_intel_string()),
+
+            // r/m64
+            Opcode::IDIVRM64 { rm64 }
+            | Opcode::INCRM64 { rm64 }
+            | Opcode::PUSHRM64 { rm64 }
+            | Opcode::NEGRM64 { rm64 } => {
+                format!("{} {}", self.opcode_to_intel(), rm64.to_intel_string())
             }
 
-            // Increment
-            Opcode::INCRM64 {rm64} => {
-                format!("inc {}" , rm64.to_intel_string())
+
+            // r64, r/m64
+            Opcode::ADDR64RM64 { r64, rm64 }
+            | Opcode::IMULR64RM64 { r64, rm64 }
+            | Opcode::SUBR64RM64 { r64, rm64 } => {
+                format!("{} {}, {}", self.opcode_to_intel(), r64.to_intel_string(), rm64.to_intel_string())
             }
 
-            // Move
+            // r/m8, r8
             Opcode::MOVRM8R8 { rm8, r8 } => {
-                format!("mov {}, {}", rm8.to_intel_string(), r8.to_intel_string())
-            }
-            Opcode::MOVRM64R64 { rm64, r64 } => {
-                format!("mov {}, {}", rm64.to_intel_string(), r64.to_intel_string())
-            }
-            Opcode::MOVRM64IMM32 { rm64, imm } => {
-                format!("mov {}, {}", rm64.to_intel_string(), imm.to_intel_string())
+                format!("{} {}, {}", self.opcode_to_intel(), rm8.to_intel_string(), r8.to_intel_string())
             }
 
-            // Neg
-            Opcode::NEGRM64 { rm64 } => {
-                format!("neg {}", rm64.to_intel_string())
+            // r/m64, r64
+            Opcode::ADDRM64R64 { rm64, r64 }
+            | Opcode::MOVRM64R64 { rm64, r64 }
+            | Opcode::SUBRM64R64 { rm64, r64 } => {
+                format!("{} {}, {}", self.opcode_to_intel(), rm64.to_intel_string(), r64.to_intel_string())
             }
 
-            // Pop
-            Opcode::POPR64 { r64 } => {
-                format!("pop {}", r64.to_intel_string())
-            }
-
-            // Push
-            Opcode::PUSHRM64 { rm64 } => {
-                format!("push {}", rm64.to_intel_string())
-            }
-            Opcode::PUSHR64 { r64 } => format!("push {}", r64.to_intel_string()),
-            Opcode::PUSHIMM32 { imm } => format!("push {}", imm.to_intel_string()),
-
-            // Sub
-            Opcode::SUBRM64IMM32 { rm64, imm } => {
-                format!("sub {}, {}", rm64.to_intel_string(), imm.to_intel_string())
-            }
-            Opcode::SUBR64RM64 { r64, rm64 } => {
-                format!("sub {}, {}", r64.to_intel_string(), rm64.to_intel_string())
-            }
-            Opcode::SUBRM64R64 { rm64, r64 } => {
-                format!("sub {}, {}", rm64.to_intel_string(), r64.to_intel_string())
+            // r/m64, imm32
+            Opcode::MOVRM64IMM32 { rm64, imm }
+            | Opcode::SUBRM64IMM32 { rm64, imm } => {
+                format!("{} {}, {}", self.opcode_to_intel(), rm64.to_intel_string(), imm.to_intel_string())
             }
         }
     }
@@ -433,57 +485,126 @@ impl Opcode {
     /// to AT&T syntax.
     pub fn to_at_string(&self) -> String {
         match &self {
+            // r64
+            Opcode::POPR64 { r64 }
+            | Opcode::PUSHR64 { r64 } => format!("{} {}", self.opcode_to_at(), r64.to_at_string()),
+
+            // imm32
+            Opcode::PUSHIMM32 { imm } => format!("{} {}", self.opcode_to_at(), imm.to_at_string()),
+
+            // r/m64
+            Opcode::IDIVRM64 { rm64 }
+            | Opcode::INCRM64 { rm64 }
+            | Opcode::PUSHRM64 { rm64 }
+            | Opcode::NEGRM64 { rm64 } => {
+                format!("{} {}", self.opcode_to_at(), rm64.to_at_string())
+            }
+
+
+            // r64, r/m64
+            Opcode::ADDR64RM64 { r64, rm64 }
+            | Opcode::IMULR64RM64 { r64, rm64 }
+            | Opcode::SUBR64RM64 { r64, rm64 } => {
+                format!("{} {}, {}", self.opcode_to_at(), rm64.to_at_string(), r64.to_at_string())
+            }
+
+            // r/m8, r8
+            Opcode::MOVRM8R8 { rm8, r8 } => {
+                format!("{} {}, {}", self.opcode_to_at(), r8.to_at_string(), rm8.to_at_string())
+            }
+
+            // r/m64, r64
+            Opcode::ADDRM64R64 { rm64, r64 }
+            | Opcode::MOVRM64R64 { rm64, r64 }
+            | Opcode::SUBRM64R64 { rm64, r64 } => {
+                format!("{} {}, {}", self.opcode_to_at(), r64.to_at_string(), rm64.to_at_string())
+            }
+
+            // r/m64, imm32
+            Opcode::MOVRM64IMM32 { rm64, imm }
+            | Opcode::SUBRM64IMM32 { rm64, imm } => {
+                format!("{} {}, {}", self.opcode_to_at(), imm.to_at_string(), rm64.to_at_string())
+            }
+        }
+    }
+
+    fn opcode_to_intel(&self) -> &str {
+        match &self {
             // Add
-            Opcode::ADDRM64R64 { rm64, r64 } => {
-                format!("addq {}, {}", r64.to_at_string(), rm64.to_at_string())
-            }
-            Opcode::ADDR64RM64 { r64, rm64 } => {
-                format!("addq {}, {}", rm64.to_at_string(), r64.to_at_string())
-            }
+            Opcode::ADDRM64R64 { rm64: _, r64: _ }
+            | Opcode::ADDR64RM64 { r64: _, rm64: _ } => "add",
+
+            // (signed) Integer Divide
+            Opcode::IDIVRM64 { rm64: _ } => "idiv",
+
+            // (signed) Integer Multiply
+
+            Opcode::IMULR64RM64 { r64: _, rm64: _ } => "imul",
+
 
             // Increment
-            Opcode::INCRM64 {rm64} => {
-                format!("incq {}" , rm64.to_at_string())
-            }
+            Opcode::INCRM64 { rm64: _ } => "inc",
 
             // Move
-            Opcode::MOVRM8R8 { rm8, r8 } => {
-                format!("movb {}, {}", r8.to_at_string(), rm8.to_at_string())
-            }
-            Opcode::MOVRM64R64 { rm64, r64 } => {
-                format!("movq {}, {}", r64.to_at_string(), rm64.to_at_string())
-            }
-            Opcode::MOVRM64IMM32 { rm64, imm } => {
-                format!("movq {}, {}", imm.to_at_string(), rm64.to_at_string())
-            }
+            Opcode::MOVRM8R8 { rm8: _, r8: _ }
+            | Opcode::MOVRM64R64 { rm64: _, r64: _ }
+            | Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => "mov",
 
             // Neg
-            Opcode::NEGRM64 { rm64 } => {
-                format!("negq {}", rm64.to_at_string())
-            }
+            Opcode::NEGRM64 { rm64: _ } => "neg",
 
             // Pop
-            Opcode::POPR64 { r64 } => {
-                format!("popq {}", r64.to_at_string())
-            }
+            Opcode::POPR64 { r64: _ } => "pop",
 
             // Push
-            Opcode::PUSHRM64 { rm64 } => {
-                format!("pushq {}", rm64.to_at_string())
-            }
-            Opcode::PUSHR64 { r64 } => format!("pushq {}", r64.to_at_string()),
-            Opcode::PUSHIMM32 { imm } => format!("pushq {}", imm.to_at_string()),
+            Opcode::PUSHRM64 { rm64: _ }
+            | Opcode::PUSHR64 { r64: _ }
+            | Opcode::PUSHIMM32 { imm: _ } => "push",
 
             // Sub
-            Opcode::SUBRM64IMM32 { rm64, imm } => {
-                format!("subq {}, {}", imm.to_at_string(), rm64.to_at_string())
-            }
-            Opcode::SUBR64RM64 { r64, rm64 } => {
-                format!("subq {}, {}", rm64.to_at_string(), r64.to_at_string())
-            }
-            Opcode::SUBRM64R64 { rm64, r64 } => {
-                format!("subq {}, {}", r64.to_at_string(), rm64.to_at_string())
-            }
+            Opcode::SUBRM64IMM32 { rm64: _, imm: _ }
+            | Opcode::SUBR64RM64 { r64: _, rm64: _ }
+            | Opcode::SUBRM64R64 { rm64: _, r64: _ } => "sub",
+        }
+    }
+
+    fn opcode_to_at(&self) -> &str {
+        match &self {
+            // Add
+            Opcode::ADDRM64R64 { rm64: _, r64: _ }
+            | Opcode::ADDR64RM64 { r64: _, rm64: _ } => "addq",
+
+            // (signed) Integer Divide
+            Opcode::IDIVRM64 { rm64: _ } => "idivq",
+
+            // (signed) Integer Multiply
+
+            Opcode::IMULR64RM64 { r64: _, rm64: _ } => "imulq",
+
+
+            // Increment
+            Opcode::INCRM64 { rm64: _ } => "incq",
+
+            // Move
+            Opcode::MOVRM8R8 { rm8: _, r8: _ } => "movb",
+            Opcode::MOVRM64R64 { rm64: _, r64: _ }
+            | Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => "movq",
+
+            // Neg
+            Opcode::NEGRM64 { rm64: _ } => "negq",
+
+            // Pop
+            Opcode::POPR64 { r64: _ } => "popq",
+
+            // Push
+            Opcode::PUSHRM64 { rm64: _ }
+            | Opcode::PUSHR64 { r64: _ }
+            | Opcode::PUSHIMM32 { imm: _ } => "pushq",
+
+            // Sub
+            Opcode::SUBRM64IMM32 { rm64: _, imm: _ }
+            | Opcode::SUBR64RM64 { r64: _, rm64: _ }
+            | Opcode::SUBRM64R64 { rm64: _, r64: _ } => "subq",
         }
     }
 }

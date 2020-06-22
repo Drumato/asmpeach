@@ -1,4 +1,6 @@
 mod add_tests;
+mod idiv_tests;
+mod imul_tests;
 mod inc_tests;
 mod mov_tests;
 mod neg_tests;
