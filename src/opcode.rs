@@ -9,6 +9,14 @@ pub enum Opcode {
     /// Add r64 to r/m64
     ADDR64RM64 { r64: GeneralPurposeRegister, rm64: Operand },
 
+    // Convert Word to Doubleword/Convert Doubleword to Quadword
+    /// DX:AX := Sign-extended of AX
+    CWD,
+    /// EDX:EAX := Sign-extended of EAX
+    CDQ,
+    /// RDX:RAX := Sign-extended of RAX
+    CQO,
+
     // (signed) Integer Divide
     /// signed divide RDX:RAX by r/m64;
     /// result stored in RAX := Quotient, RDX := Remainder.
@@ -49,6 +57,10 @@ pub enum Opcode {
     /// Push imm32
     PUSHIMM32 { imm: Immediate },
 
+    // Return from procedure
+    /// Near Return
+    RET,
+
     // Sub
     /// Subtract r/m64 from r64
     SUBR64RM64 { r64: GeneralPurposeRegister, rm64: Operand },
@@ -58,6 +70,13 @@ pub enum Opcode {
 
     /// Subtract imm32 from r/m64
     SUBRM64IMM32 { rm64: Operand, imm: Immediate },
+
+    /// Fast System Call
+    SYSCALL,
+
+    // etc
+    /// for comments
+    COMMENT(String),
 }
 
 impl Opcode {
@@ -66,6 +85,11 @@ impl Opcode {
             // Add
             Opcode::ADDRM64R64 { rm64: _, r64: _ } => vec![0x01],
             Opcode::ADDR64RM64 { r64: _, rm64: _ } => vec![0x03],
+
+            // Convert Word to Doubleword/Convert Doubleword to Quadword
+            Opcode::CWD => vec![0x66, 0x99],
+            Opcode::CDQ
+            | Opcode::CQO => vec![0x99],
 
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64: _ } => vec![0xf7],
@@ -92,10 +116,19 @@ impl Opcode {
             Opcode::PUSHR64 { r64 } => vec![0x50 + r64.number()],
             Opcode::PUSHIMM32 { imm: _ } => vec![0x68],
 
+            // Return from procedure
+            Opcode::RET => vec![0xc3],
+
             // Sub
             Opcode::SUBRM64IMM32 { rm64: _, imm: _ } => vec![0x81],
             Opcode::SUBR64RM64 { r64: _, rm64: _ } => vec![0x2b],
             Opcode::SUBRM64R64 { rm64: _, r64: _ } => vec![0x29],
+
+            // Fast System Call
+            Opcode::SYSCALL => vec![0x0f,0x05],
+
+            // etc
+            Opcode::COMMENT(_com) => panic!("mustn't call 'to_bytes()' with COMMENT"),
         }
     }
 
@@ -104,6 +137,11 @@ impl Opcode {
             // Add
             Opcode::ADDRM64R64 { rm64: _, r64: _ } => Encoding::MR,
             Opcode::ADDR64RM64 { r64: _, rm64: _ } => Encoding::RM,
+
+            // Convert Word to Doubleword/Convert Doubleword to Quadword
+            Opcode::CWD
+            | Opcode::CDQ
+            | Opcode::CQO => Encoding::ZO,
 
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64: _ } => Encoding::M,
@@ -130,10 +168,19 @@ impl Opcode {
             Opcode::PUSHR64 { r64: _ } => Encoding::O,
             Opcode::PUSHIMM32 { imm: _ } => Encoding::I,
 
+            // Return from procedure
+            Opcode::RET => Encoding::ZO,
+
             // Sub
             Opcode::SUBRM64IMM32 { rm64: _, imm: _ } => Encoding::MI,
             Opcode::SUBR64RM64 { r64: _, rm64: _ } => Encoding::RM,
             Opcode::SUBRM64R64 { rm64: _, r64: _ } => Encoding::MR,
+
+            // Fast system call
+            Opcode::SYSCALL => Encoding::ZO,
+
+            // etc
+            Opcode::COMMENT(_com) => panic!("mustn't call 'encoding()' with COMMENT"),
         }
     }
 
@@ -152,6 +199,14 @@ impl Opcode {
                 r_bit: rm64.is_expanded(),
                 x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
                 b_bit: r64.is_expanded(),
+            }),
+
+            // Convert Word to Doubleword/Convert Doubleword to Quadword
+            Opcode::CQO => Some(REXPrefix {
+                w_bit: true,
+                r_bit: false,
+                x_bit: false,
+                b_bit: false,
             }),
 
             // (signed) Integer Multiply
@@ -179,7 +234,6 @@ impl Opcode {
             }),
 
             // Move
-            Opcode::MOVRM8R8 { rm8: _, r8: _ } => None,
             Opcode::MOVRM64R64 { rm64, r64 } => {
                 Some(REXPrefix {
                     w_bit: true,
@@ -239,8 +293,6 @@ impl Opcode {
                     None
                 }
             }
-            Opcode::PUSHIMM32 { imm: _ } => None,
-
             // Sub
             Opcode::SUBRM64IMM32 { rm64, imm: _ } => Some(
                 REXPrefix {
@@ -267,6 +319,8 @@ impl Opcode {
                 x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
                 b_bit: r64.is_expanded(),
             }),
+
+            _ => None,
         }
     }
 
@@ -432,6 +486,7 @@ impl Opcode {
             Opcode::SUBRM64IMM32 { rm64, imm: _ } => rm64.sib_byte(),
             Opcode::SUBRM64R64 { rm64, r64: _ } => rm64.sib_byte(),
             Opcode::SUBR64RM64 { r64: _, rm64 } => rm64.sib_byte(),
+
             _ => None,
         }
     }
@@ -439,6 +494,13 @@ impl Opcode {
     /// to Intel syntax.
     pub fn to_intel_string(&self) -> String {
         match &self {
+            // none
+            Opcode::CWD
+            | Opcode::CDQ
+            | Opcode::CQO
+            | Opcode::RET
+            | Opcode::SYSCALL => self.opcode_to_intel().to_string(),
+
             // r64
             Opcode::POPR64 { r64 }
             | Opcode::PUSHR64 { r64 } => format!("{} {}", self.opcode_to_intel(), r64.to_intel_string()),
@@ -479,12 +541,22 @@ impl Opcode {
             | Opcode::SUBRM64IMM32 { rm64, imm } => {
                 format!("{} {}, {}", self.opcode_to_intel(), rm64.to_intel_string(), imm.to_intel_string())
             }
+
+            // etc
+            Opcode::COMMENT(com) => format!("# {}", com),
         }
     }
 
     /// to AT&T syntax.
     pub fn to_at_string(&self) -> String {
         match &self {
+            // none
+            Opcode::CWD
+            | Opcode::CDQ
+            | Opcode::CQO
+            | Opcode::RET
+            | Opcode::SYSCALL => self.opcode_to_at().to_string(),
+
             // r64
             Opcode::POPR64 { r64 }
             | Opcode::PUSHR64 { r64 } => format!("{} {}", self.opcode_to_at(), r64.to_at_string()),
@@ -525,6 +597,9 @@ impl Opcode {
             | Opcode::SUBRM64IMM32 { rm64, imm } => {
                 format!("{} {}, {}", self.opcode_to_at(), imm.to_at_string(), rm64.to_at_string())
             }
+
+            // etc
+            Opcode::COMMENT(com) => format!("# {}", com),
         }
     }
 
@@ -533,6 +608,11 @@ impl Opcode {
             // Add
             Opcode::ADDRM64R64 { rm64: _, r64: _ }
             | Opcode::ADDR64RM64 { r64: _, rm64: _ } => "add",
+
+            // none
+            Opcode::CWD => "cwd",
+            Opcode::CDQ => "cdq",
+            Opcode::CQO => "cqo",
 
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64: _ } => "idiv",
@@ -561,10 +641,19 @@ impl Opcode {
             | Opcode::PUSHR64 { r64: _ }
             | Opcode::PUSHIMM32 { imm: _ } => "push",
 
+            // Return from procedure
+            Opcode::RET => "ret",
+
             // Sub
             Opcode::SUBRM64IMM32 { rm64: _, imm: _ }
             | Opcode::SUBR64RM64 { r64: _, rm64: _ }
             | Opcode::SUBRM64R64 { rm64: _, r64: _ } => "sub",
+
+            // Fast System Call
+            Opcode::SYSCALL => "syscall",
+
+            // etc
+            Opcode::COMMENT(_com) => "",
         }
     }
 
@@ -573,6 +662,11 @@ impl Opcode {
             // Add
             Opcode::ADDRM64R64 { rm64: _, r64: _ }
             | Opcode::ADDR64RM64 { r64: _, rm64: _ } => "addq",
+
+            // none
+            Opcode::CWD => "cwtd",
+            Opcode::CDQ => "cltd",
+            Opcode::CQO => "cqto",
 
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64: _ } => "idivq",
@@ -601,10 +695,19 @@ impl Opcode {
             | Opcode::PUSHR64 { r64: _ }
             | Opcode::PUSHIMM32 { imm: _ } => "pushq",
 
+            // Return from procedure
+            Opcode::RET => "ret",
+
             // Sub
             Opcode::SUBRM64IMM32 { rm64: _, imm: _ }
             | Opcode::SUBR64RM64 { r64: _, rm64: _ }
             | Opcode::SUBRM64R64 { rm64: _, r64: _ } => "subq",
+
+            // Fast System Call
+            Opcode::SYSCALL => "syscall",
+
+            // etc
+            Opcode::COMMENT(_com) => "",
         }
     }
 }
