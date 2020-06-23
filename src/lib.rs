@@ -9,6 +9,7 @@ mod gpr;
 mod imm;
 mod disp;
 mod tests;
+mod group;
 
 pub use rex_prefix::*;
 pub use modrm::*;
@@ -20,3 +21,4 @@ pub use sib_byte::*;
 pub use gpr::*;
 pub use imm::*;
 pub use disp::*;
+pub use group::*;

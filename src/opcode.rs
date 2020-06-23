@@ -675,7 +675,6 @@ impl Opcode {
 
             Opcode::IMULR64RM64 { r64: _, rm64: _ } => "imulq",
 
-
             // Increment
             Opcode::INCRM64 { rm64: _ } => "incq",
 
