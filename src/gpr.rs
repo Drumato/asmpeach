@@ -129,6 +129,28 @@ impl GeneralPurposeRegister {
         }
     }
 
+    pub fn from_at_string(s: &str) -> Self {
+        match s {
+            "%rax" => GeneralPurposeRegister::RAX,
+            "%rcx" => GeneralPurposeRegister::RCX,
+            "%rdx" => GeneralPurposeRegister::RDX,
+            "%rbx" => GeneralPurposeRegister::RBX,
+            "%rsp" => GeneralPurposeRegister::RSP,
+            "%rbp" => GeneralPurposeRegister::RBP,
+            "%rsi" => GeneralPurposeRegister::RSI,
+            "%rdi" => GeneralPurposeRegister::RDI,
+            "%r8" => GeneralPurposeRegister::R8,
+            "%r9" => GeneralPurposeRegister::R9,
+            "%10" => GeneralPurposeRegister::R10,
+            "%11" => GeneralPurposeRegister::R11,
+            "%12" => GeneralPurposeRegister::R12,
+            "%13" => GeneralPurposeRegister::R13,
+            "%14" => GeneralPurposeRegister::R14,
+            "%15" => GeneralPurposeRegister::R15,
+            _ => unimplemented!()
+        }
+    }
+
     pub fn to_64bit(&self) -> Self {
         match self {
             // 8bit general-purpose registers
