@@ -1,4 +1,4 @@
-use crate::GeneralPurposeRegister;
+use crate::{GeneralPurposeRegister, Operand};
 
 use fmt::Formatter;
 use std::fmt;
@@ -22,6 +22,34 @@ impl REXPrefix {
     pub const R_BIT: u8 = 0x04;
     pub const X_BIT: u8 = 0x02;
     pub const B_BIT: u8 = 0x01;
+
+    pub fn new(w: bool, r: bool, x: bool, b: bool) -> Self {
+        Self {
+            w_bit: w,
+            r_bit: r,
+            x_bit: x,
+            b_bit: b,
+        }
+    }
+
+    pub fn new_from_mem(is_64bit: bool, rm: &Operand) -> Self{
+        Self{
+            w_bit: is_64bit,
+            r_bit: rm.is_expanded(),
+            x_bit: rm.req_sib_byte() && rm.index_reg_is_expanded(),
+            b_bit: false,
+        }
+    }
+
+    pub fn new_from_mem_and_reg(is_64bit: bool, reg: &GeneralPurposeRegister, rm: &Operand) -> Self {
+        Self {
+            w_bit: is_64bit,
+            r_bit: rm.is_expanded(),
+            x_bit: rm.req_sib_byte() && rm.index_reg_is_expanded(),
+            b_bit: reg.is_expanded(),
+        }
+    }
+
 
     pub fn to_byte(&self) -> u8 {
         let base = Self::BASE;

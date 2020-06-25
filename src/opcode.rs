@@ -203,100 +203,51 @@ impl Opcode {
     pub fn rex_prefix(&self) -> Option<REXPrefix> {
         match &self {
             // Add
-            Opcode::ADDRM64R64 { rm64, r64 } => Some(REXPrefix {
-                w_bit: true,
-                r_bit: rm64.is_expanded(),
-                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                b_bit: r64.is_expanded(),
-            }),
-            Opcode::ADDR64RM64 { r64, rm64 } => Some(REXPrefix {
-                w_bit: true,
-                r_bit: rm64.is_expanded(),
-                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                b_bit: r64.is_expanded(),
-            }),
+            Opcode::ADDRM64R64 { rm64, r64 } => {
+                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
+            }
+            Opcode::ADDR64RM64 { r64, rm64 } => {
+                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
+            }
 
             // Convert Word to Doubleword/Convert Doubleword to Quadword
-            Opcode::CQO => Some(REXPrefix {
-                w_bit: true,
-                r_bit: false,
-                x_bit: false,
-                b_bit: false,
-            }),
+            Opcode::CQO => Some(REXPrefix::new(true, false, false, false)),
 
             // (signed) Integer Multiply
-            Opcode::IMULR64RM64 { r64, rm64 } => Some(REXPrefix {
-                w_bit: true,
-                r_bit: rm64.is_expanded(),
-                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                b_bit: r64.is_expanded(),
-            }),
+            Opcode::IMULR64RM64 { r64, rm64 } => {
+                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
+            }
 
             // (signed) Integer Divide
-            Opcode::IDIVRM64 { rm64 } => Some(REXPrefix {
-                w_bit: true,
-                r_bit: rm64.is_expanded(),
-                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                b_bit: false,
-            }),
+            Opcode::IDIVRM64 { rm64 } => {
+                Some(REXPrefix::new_from_mem(true, rm64))
+            }
 
             // Increment
-            Opcode::INCRM64 { rm64 } => Some(REXPrefix {
-                w_bit: true,
-                r_bit: rm64.is_expanded(),
-                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                b_bit: false,
-            }),
+            Opcode::INCRM64 { rm64 } => {
+                Some(REXPrefix::new_from_mem(true, rm64))
+            }
 
             // Move
             Opcode::MOVRM64R64 { rm64, r64 } => {
-                Some(REXPrefix {
-                    w_bit: true,
-                    r_bit: rm64.is_expanded(),
-                    // req_sib_byte() でindexフィールドが
-                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                    b_bit: r64.is_expanded(),
-                })
+                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
             }
             Opcode::MOVR64RM64 { r64, rm64 } => {
-                Some(REXPrefix {
-                    w_bit: true,
-                    r_bit: rm64.is_expanded(),
-                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                    b_bit: r64.is_expanded(),
-                })
+                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
             }
             Opcode::MOVRM64IMM32 { rm64, imm: _ } => {
-                Some(
-                    REXPrefix {
-                        w_bit: true,
-                        r_bit: rm64.is_expanded(),
-                        // req_sib_byte() でindexフィールドが
-                        x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                        b_bit: false,
-                    }
-                )
+                Some(REXPrefix::new_from_mem(true, rm64))
             }
 
             // Neg
             Opcode::NEGRM64 { rm64 } => {
-                Some(REXPrefix {
-                    w_bit: true,
-                    r_bit: rm64.is_expanded(),
-                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                    b_bit: false,
-                })
+                Some(REXPrefix::new_from_mem(true, rm64))
             }
 
             // Pop
             Opcode::POPR64 { r64 } => {
                 if r64.is_expanded() {
-                    Some(REXPrefix {
-                        w_bit: false,
-                        r_bit: false,
-                        x_bit: false,
-                        b_bit: true,
-                    })
+                    Some(REXPrefix::new(false, false, false, true))
                 } else {
                     None
                 }
@@ -306,42 +257,21 @@ impl Opcode {
             Opcode::PUSHRM64 { rm64: _ } => None,
             Opcode::PUSHR64 { r64 } => {
                 if r64.is_expanded() {
-                    Some(REXPrefix {
-                        w_bit: false,
-                        r_bit: false,
-                        x_bit: false,
-                        b_bit: true,
-                    })
+                    Some(REXPrefix::new(false, false, false, true))
                 } else {
                     None
                 }
             }
             // Sub
-            Opcode::SUBRM64IMM32 { rm64, imm: _ } => Some(
-                REXPrefix {
-                    w_bit: true,
-                    r_bit: rm64.is_expanded(),
-                    // req_sib_byte() でindexフィールドが
-                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                    b_bit: false,
-                }
-            ),
-            Opcode::SUBR64RM64 { r64, rm64 } => Some(
-                REXPrefix {
-                    w_bit: true,
-                    r_bit: rm64.is_expanded(),
-                    // req_sib_byte() でindexフィールドが
-                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                    b_bit: r64.is_expanded(),
-                }
-            ),
-            Opcode::SUBRM64R64 { rm64, r64 } => Some(REXPrefix {
-                w_bit: true,
-                r_bit: rm64.is_expanded(),
-                // req_sib_byte() でindexフィールドが
-                x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                b_bit: r64.is_expanded(),
-            }),
+            Opcode::SUBRM64IMM32 { rm64, imm: _ } => {
+                Some(REXPrefix::new_from_mem(true, rm64))
+            }
+            Opcode::SUBR64RM64 { r64, rm64 } => {
+                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
+            }
+            Opcode::SUBRM64R64 { rm64, r64 } => {
+                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
+            }
 
             _ => None,
         }
