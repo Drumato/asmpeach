@@ -43,6 +43,20 @@ const MOVRM64R64_CASES: [Instruction; 2] = [
 ];
 
 #[allow(dead_code)]
+const MOVR64RM64_CASES: [Instruction; 1] = [
+    Instruction {
+        opcode: Opcode::MOVR64RM64 {
+            r64: GeneralPurposeRegister::RAX,
+            rm64: Operand::ADDRESSING {
+                base_reg: GeneralPurposeRegister::RAX,
+                index_reg: None,
+                displacement: None,
+                scale: None,
+            },
+        }
+    }];
+
+#[allow(dead_code)]
 const MOVRM64IMM32_CASES: [Instruction; 1] = [Instruction {
     opcode: Opcode::MOVRM64IMM32 {
         rm64: Operand::ADDRESSING {
@@ -86,6 +100,14 @@ mod to_intel_tests {
     }
 
     #[test]
+    fn movr64rm64_test() {
+        // mov rax, [rax]
+        let inst = &MOVR64RM64_CASES[0];
+
+        assert_eq!(inst.to_intel_string(), "mov rax, QWORD PTR [rax]");
+    }
+
+    #[test]
     fn movrm64imm32_test() {
         // mov QWORD PTR [rax], 60
         let inst = &MOVRM64IMM32_CASES[0];
@@ -124,6 +146,14 @@ mod to_at_tests {
     }
 
     #[test]
+    fn movr64rm64_test() {
+        // mov rax, [rax]
+        let inst = &MOVR64RM64_CASES[0];
+
+        assert_eq!(inst.to_at_string(), "movq (%rax), %rax");
+    }
+
+    #[test]
     fn movrm64imm32_test() {
         // mov QWORD PTR [rax], 60
         let inst = &MOVRM64IMM32_CASES[0];
@@ -159,6 +189,14 @@ mod to_bytes_tests {
         let inst = &MOVRM64R64_CASES[1];
 
         assert_eq!(inst.to_bytes(), vec![0x48, 0x89, 0x0c, 0x98]);
+    }
+
+    #[test]
+    fn movr64rm64_test() {
+        // mov rax, [rax]
+        let inst = &MOVR64RM64_CASES[0];
+
+        assert_eq!(inst.to_bytes(), vec![0x48, 0x8b, 0x00]);
     }
 
     #[test]

@@ -37,6 +37,9 @@ pub enum Opcode {
     /// Move r64 to r/m64
     MOVRM64R64 { r64: GeneralPurposeRegister, rm64: Operand },
 
+    /// Move r/m64 to r64
+    MOVR64RM64 { r64: GeneralPurposeRegister, rm64: Operand },
+
     /// Move imm32 to r/m64
     MOVRM64IMM32 { imm: Immediate, rm64: Operand },
 
@@ -103,6 +106,7 @@ impl Opcode {
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => vec![0x88],
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => vec![0x89],
+            Opcode::MOVR64RM64 { r64: _, rm64: _ } => vec![0x8b],
             Opcode::MOVRM64IMM32 { imm: _, rm64: _ } => vec![0xc7],
 
             // Neg
@@ -125,7 +129,7 @@ impl Opcode {
             Opcode::SUBRM64R64 { rm64: _, r64: _ } => vec![0x29],
 
             // Fast System Call
-            Opcode::SYSCALL => vec![0x0f,0x05],
+            Opcode::SYSCALL => vec![0x0f, 0x05],
 
             // etc
             Opcode::COMMENT(_com) => panic!("mustn't call 'to_bytes()' with COMMENT"),
@@ -155,6 +159,7 @@ impl Opcode {
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => Encoding::MR,
+            Opcode::MOVR64RM64 { r64: _, rm64: _ } => Encoding::RM,
             Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => Encoding::MI,
 
             // Neg
@@ -239,6 +244,14 @@ impl Opcode {
                     w_bit: true,
                     r_bit: rm64.is_expanded(),
                     // req_sib_byte() でindexフィールドが
+                    x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                    b_bit: r64.is_expanded(),
+                })
+            }
+            Opcode::MOVR64RM64 { r64, rm64 } => {
+                Some(REXPrefix {
+                    w_bit: true,
+                    r_bit: rm64.is_expanded(),
                     x_bit: rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
                     b_bit: r64.is_expanded(),
                 })
@@ -365,6 +378,10 @@ impl Opcode {
             Opcode::MOVRM64R64 { rm64, r64 } => {
                 // MR
                 Some(ModRM::new_mr(rm64.addressing_mode(), rm64, r64))
+            }
+            Opcode::MOVR64RM64 { r64, rm64 } => {
+                // RM
+                Some(ModRM::new_rm(rm64.addressing_mode(), r64, rm64))
             }
             Opcode::MOVRM64IMM32 { rm64, imm: _ } => {
                 // MI( /0 マスクなのでそのままMIで )
@@ -520,7 +537,8 @@ impl Opcode {
             // r64, r/m64
             Opcode::ADDR64RM64 { r64, rm64 }
             | Opcode::IMULR64RM64 { r64, rm64 }
-            | Opcode::SUBR64RM64 { r64, rm64 } => {
+            | Opcode::SUBR64RM64 { r64, rm64 }
+            | Opcode::MOVR64RM64 { r64, rm64 } => {
                 format!("{} {}, {}", self.opcode_to_intel(), r64.to_intel_string(), rm64.to_intel_string())
             }
 
@@ -576,7 +594,8 @@ impl Opcode {
             // r64, r/m64
             Opcode::ADDR64RM64 { r64, rm64 }
             | Opcode::IMULR64RM64 { r64, rm64 }
-            | Opcode::SUBR64RM64 { r64, rm64 } => {
+            | Opcode::SUBR64RM64 { r64, rm64 }
+            | Opcode::MOVR64RM64 { r64, rm64 } => {
                 format!("{} {}, {}", self.opcode_to_at(), rm64.to_at_string(), r64.to_at_string())
             }
 
@@ -628,6 +647,7 @@ impl Opcode {
             // Move
             Opcode::MOVRM8R8 { rm8: _, r8: _ }
             | Opcode::MOVRM64R64 { rm64: _, r64: _ }
+            | Opcode::MOVR64RM64 { r64: _, rm64: _ }
             | Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => "mov",
 
             // Neg
@@ -681,6 +701,7 @@ impl Opcode {
             // Move
             Opcode::MOVRM8R8 { rm8: _, r8: _ } => "movb",
             Opcode::MOVRM64R64 { rm64: _, r64: _ }
+            | Opcode::MOVR64RM64 { r64: _, rm64: _ }
             | Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => "movq",
 
             // Neg
