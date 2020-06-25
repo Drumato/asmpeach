@@ -27,6 +27,15 @@ pub enum Operand {
 }
 
 impl Operand {
+    /// ラベルの文字列を取得
+    pub fn copy_label(&self) -> String {
+        match self {
+            Operand::LABEL(contents) => contents.to_string(),
+            _ => unimplemented!()
+        }
+    }
+
+
     /// メモリアドレッシングかチェック
     pub fn is_addressing(&self) -> bool {
         match self {
