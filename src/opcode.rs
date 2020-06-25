@@ -9,6 +9,10 @@ pub enum Opcode {
     /// Add r64 to r/m64
     ADDR64RM64 { r64: GeneralPurposeRegister, rm64: Operand },
 
+    // Call
+    /// CALL Function (abstraction)
+    CALLFUNC(Operand),
+
     // Convert Word to Doubleword/Convert Doubleword to Quadword
     /// DX:AX := Sign-extended of AX
     CWD,
@@ -89,6 +93,9 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64: _, r64: _ } => vec![0x01],
             Opcode::ADDR64RM64 { r64: _, rm64: _ } => vec![0x03],
 
+            // Call
+            Opcode::CALLFUNC(_func) => unimplemented!(),
+
             // Convert Word to Doubleword/Convert Doubleword to Quadword
             Opcode::CWD => vec![0x66, 0x99],
             Opcode::CDQ
@@ -141,6 +148,9 @@ impl Opcode {
             // Add
             Opcode::ADDRM64R64 { rm64: _, r64: _ } => Encoding::MR,
             Opcode::ADDR64RM64 { r64: _, rm64: _ } => Encoding::RM,
+
+            // Call
+            Opcode::CALLFUNC(_func) => unimplemented!(),
 
             // Convert Word to Doubleword/Convert Doubleword to Quadword
             Opcode::CWD
@@ -518,6 +528,9 @@ impl Opcode {
             | Opcode::RET
             | Opcode::SYSCALL => self.opcode_to_intel().to_string(),
 
+            // Call
+            Opcode::CALLFUNC(func) => format!("{} {}", self.opcode_to_intel(), func.to_intel_string()),
+
             // r64
             Opcode::POPR64 { r64 }
             | Opcode::PUSHR64 { r64 } => format!("{} {}", self.opcode_to_intel(), r64.to_intel_string()),
@@ -575,6 +588,9 @@ impl Opcode {
             | Opcode::RET
             | Opcode::SYSCALL => self.opcode_to_at().to_string(),
 
+            // Call
+            Opcode::CALLFUNC(func) => format!("{} {}", self.opcode_to_at(), func.to_at_string()),
+
             // r64
             Opcode::POPR64 { r64 }
             | Opcode::PUSHR64 { r64 } => format!("{} {}", self.opcode_to_at(), r64.to_at_string()),
@@ -627,6 +643,10 @@ impl Opcode {
             // Add
             Opcode::ADDRM64R64 { rm64: _, r64: _ }
             | Opcode::ADDR64RM64 { r64: _, rm64: _ } => "add",
+
+
+            // Call
+            Opcode::CALLFUNC(_func) => "call",
 
             // none
             Opcode::CWD => "cwd",
@@ -682,6 +702,9 @@ impl Opcode {
             // Add
             Opcode::ADDRM64R64 { rm64: _, r64: _ }
             | Opcode::ADDR64RM64 { r64: _, rm64: _ } => "addq",
+
+            // Call
+            Opcode::CALLFUNC(_func) => "call",
 
             // none
             Opcode::CWD => "cwtd",
