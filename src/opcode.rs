@@ -1,4 +1,4 @@
-use crate::{Displacement, Encoding, GeneralPurposeRegister, Immediate, ModRM, Operand, REXPrefix, SIBByte};
+use crate::{Displacement, Encoding, GeneralPurposeRegister, Immediate, ModRM, Operand, REXPrefix, SIBByte, AddressingMode};
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Opcode {
@@ -33,6 +33,9 @@ pub enum Opcode {
     // Increment
     /// increment r/m64 by one.
     INCRM64 { rm64: Operand },
+
+    // Load Effective Address
+    LEAR64FROMSTRADDR { r64: GeneralPurposeRegister, str_sym: String, addend: usize },
 
     // Move
     /// Move r8 to r/m8
@@ -110,6 +113,9 @@ impl Opcode {
             // Increment
             Opcode::INCRM64 { rm64: _ } => vec![0xff],
 
+            // Load Effective Address
+            Opcode::LEAR64FROMSTRADDR { r64: _, str_sym: _, addend: _ } => vec![0x8d],
+
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => vec![0x88],
             Opcode::MOVRM64R64 { r64: _, rm64: _ } => vec![0x89],
@@ -165,6 +171,9 @@ impl Opcode {
 
             // Increment
             Opcode::INCRM64 { rm64: _ } => Encoding::M,
+
+            // Load Effective Address
+            Opcode::LEAR64FROMSTRADDR { r64: _, str_sym: _, addend: _ } => Encoding::RM,
 
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
@@ -227,6 +236,12 @@ impl Opcode {
             Opcode::INCRM64 { rm64 } => {
                 Some(REXPrefix::new_from_mem(true, rm64))
             }
+
+            // Load Effective Address
+            Opcode::LEAR64FROMSTRADDR { r64, str_sym: _, addend: _ } => {
+                Some(REXPrefix::new(true, false, false, r64.is_expanded()))
+            }
+
 
             // Move
             Opcode::MOVRM64R64 { rm64, r64 } => {
@@ -310,6 +325,11 @@ impl Opcode {
                 Some(ModRM::new_mr(rm64.addressing_mode(), rm64, &GeneralPurposeRegister::new_64bit_from_code(0)))
             }
 
+            // Load Effective Address
+            Opcode::LEAR64FROMSTRADDR { r64, str_sym: _, addend: _ } => {
+                Some(ModRM::new_mi(AddressingMode::DIRECTREG, &Operand::GENERALREGISTER(*r64)))
+            }
+
             // Move
             Opcode::MOVRM8R8 { rm8, r8 } => {
                 // MR
@@ -376,6 +396,8 @@ impl Opcode {
 
             // Increment
             Opcode::INCRM64 { rm64 } => rm64.get_displacement(),
+
+
 
             // Move
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.get_displacement(),
@@ -461,6 +483,11 @@ impl Opcode {
             // Call
             Opcode::CALLFUNC(func) => format!("{} {}", self.opcode_to_intel(), func.to_intel_string()),
 
+            // Load Effective Address
+            Opcode::LEAR64FROMSTRADDR { r64, str_sym, addend: _ } => {
+                format!("{} {}, {}", self.opcode_to_intel(), str_sym, r64.to_intel_string())
+            }
+
             // r64
             Opcode::POPR64 { r64 }
             | Opcode::PUSHR64 { r64 } => format!("{} {}", self.opcode_to_intel(), r64.to_intel_string()),
@@ -521,6 +548,11 @@ impl Opcode {
             // Call
             Opcode::CALLFUNC(func) => format!("{} {}", self.opcode_to_at(), func.to_at_string()),
 
+            // Load Effective Address
+            Opcode::LEAR64FROMSTRADDR { r64, str_sym, addend: _ } => {
+                format!("{} {}, {}", self.opcode_to_at(), str_sym, r64.to_at_string())
+            }
+
             // r64
             Opcode::POPR64 { r64 }
             | Opcode::PUSHR64 { r64 } => format!("{} {}", self.opcode_to_at(), r64.to_at_string()),
@@ -577,6 +609,10 @@ impl Opcode {
 
             // Call
             Opcode::CALLFUNC(_func) => "call",
+
+            // Load Effective Address
+            Opcode::LEAR64FROMSTRADDR { r64: _, str_sym: _, addend: _ } => "lea",
+
 
             // none
             Opcode::CWD => "cwd",
@@ -635,6 +671,9 @@ impl Opcode {
 
             // Call
             Opcode::CALLFUNC(_func) => "call",
+
+            // Load Effective Address
+            Opcode::LEAR64FROMSTRADDR { r64: _, str_sym: _, addend: _ } => "leaq",
 
             // none
             Opcode::CWD => "cwtd",
