@@ -327,7 +327,7 @@ impl Opcode {
 
             // Load Effective Address
             Opcode::LEAR64FROMSTRADDR { r64, str_sym: _, addend: _ } => {
-                Some(ModRM::new_rm(AddressingMode::DIRECTREG, r64, &Operand::GENERALREGISTER(GeneralPurposeRegister::new_64bit_from_code(4))))
+                Some(ModRM::new_rm(AddressingMode::REGISTER, r64, &Operand::GENERALREGISTER(GeneralPurposeRegister::new_64bit_from_code(4))))
             }
 
             // Move
