@@ -327,7 +327,7 @@ impl Opcode {
 
             // Load Effective Address
             Opcode::LEAR64FROMSTRADDR { r64, str_sym: _, addend: _ } => {
-                Some(ModRM::new_mi(AddressingMode::DIRECTREG, &Operand::GENERALREGISTER(*r64)))
+                Some(ModRM::new_rm(AddressingMode::DIRECTREG, r64, &Operand::GENERALREGISTER(GeneralPurposeRegister::new_64bit_from_code(4))))
             }
 
             // Move
@@ -396,7 +396,6 @@ impl Opcode {
 
             // Increment
             Opcode::INCRM64 { rm64 } => rm64.get_displacement(),
-
 
 
             // Move
