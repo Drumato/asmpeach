@@ -21,6 +21,10 @@ pub enum Opcode {
     /// RDX:RAX := Sign-extended of RAX
     CQO,
 
+    // Compare Two Operands
+    /// Compare imm32 with RAX.
+    CMPRAXIMM32 { imm: Immediate },
+
     // (signed) Integer Divide
     /// signed divide RDX:RAX by r/m64;
     /// result stored in RAX := Quotient, RDX := Remainder.
@@ -34,7 +38,29 @@ pub enum Opcode {
     /// increment r/m64 by one.
     INCRM64 { rm64: Operand },
 
+    // Jump
+    /// Jump Label
+    /// このopcodeに対し `to_bytes()` メソッドを呼び出すと，
+    /// `[REX-Prefix, opcode]` が返されます．
+    /// 自作アセンブラでこのバイト列に対し `imm32(0)` を追加して，
+    /// あとから相対オフセットを計算するといいと思います．
+    JMPLABEL { label: String },
+
+    /// Jump Equal Label
+    /// このopcodeに対し `to_bytes()` メソッドを呼び出すと，
+    /// `[REX-Prefix, opcode1, opcode2]` が返されます．
+    /// 自作アセンブラでこのバイト列に対し `imm32(0)` を追加して，
+    /// あとから相対オフセットを計算するといいと思います．
+    JELABEL { label: String },
+
     // Load Effective Address
+    /// スタティックリンクで使用される， `lea rax, .LS1` のような命令です．
+    /// このopcodeに対し `to_bytes()` メソッドを呼び出すと，
+    /// `[REX-Prefix, opcode, ModRM]` が返されます．
+    /// 自作アセンブラでは
+    /// `let mut base_bytes = inst.to_bytes(); base_bytes.append(&mut vec![0x25, 0x00, 0x00, 0x00, 0x00])` のように，
+    /// データセグメントを用いるプリフィックスと，再配置でアドレスを書き込むためのパディングを追加するといいでしょう．
+    /// そして再配置シンボルを定義して，リンク時に文字列のアドレスを書き込むといいと思います．
     LEAR64FROMSTRADDR { r64: GeneralPurposeRegister, str_sym: String, addend: usize },
 
     // Move
@@ -104,6 +130,8 @@ impl Opcode {
             Opcode::CDQ
             | Opcode::CQO => vec![0x99],
 
+            Opcode::CMPRAXIMM32 { imm: _, } => vec![0x3d],
+
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64: _ } => vec![0xf7],
 
@@ -112,6 +140,10 @@ impl Opcode {
 
             // Increment
             Opcode::INCRM64 { rm64: _ } => vec![0xff],
+
+            // Jump
+            Opcode::JMPLABEL { label: _ } => vec![0xe9],
+            Opcode::JELABEL { label: _ } => vec![0x0f, 0x84],
 
             // Load Effective Address
             Opcode::LEAR64FROMSTRADDR { r64: _, str_sym: _, addend: _ } => vec![0x8d],
@@ -163,6 +195,9 @@ impl Opcode {
             | Opcode::CDQ
             | Opcode::CQO => Encoding::ZO,
 
+            // Compare Two Operands
+            Opcode::CMPRAXIMM32 { imm: _, } => Encoding::I,
+
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64: _ } => Encoding::M,
 
@@ -171,6 +206,10 @@ impl Opcode {
 
             // Increment
             Opcode::INCRM64 { rm64: _ } => Encoding::M,
+
+            // Jump
+            Opcode::JMPLABEL { label: _ } => Encoding::D,
+            Opcode::JELABEL { label: _ } => Encoding::D,
 
             // Load Effective Address
             Opcode::LEAR64FROMSTRADDR { r64: _, str_sym: _, addend: _ } => Encoding::RM,
@@ -221,6 +260,9 @@ impl Opcode {
 
             // Convert Word to Doubleword/Convert Doubleword to Quadword
             Opcode::CQO => Some(REXPrefix::new(true, false, false, false)),
+
+            // Compare Two Operands
+            Opcode::CMPRAXIMM32 { imm: _, } => Some(REXPrefix::new(true, false, false, false)),
 
             // (signed) Integer Multiply
             Opcode::IMULR64RM64 { r64, rm64 } => {
@@ -421,6 +463,9 @@ impl Opcode {
 
     pub fn get_immediate(&self) -> Option<Immediate> {
         match &self {
+            // Compare Two Operands
+            Opcode::CMPRAXIMM32 { imm, } => Some(*imm),
+
             // Move
             Opcode::MOVRM64IMM32 { rm64: _, imm } => Some(*imm),
 
@@ -481,6 +526,14 @@ impl Opcode {
 
             // Call
             Opcode::CALLFUNC(func) => format!("{} {}", self.opcode_to_intel(), func.to_intel_string()),
+
+
+            // Compare Two Operands
+            Opcode::CMPRAXIMM32 { imm, } => format!("{} rax, {}", self.opcode_to_intel(), imm.to_intel_string()),
+
+            // Jump
+            Opcode::JMPLABEL { label } => format!("{} {}", self.opcode_to_intel(), label),
+            Opcode::JELABEL { label } => format!("{} {}", self.opcode_to_intel(), label),
 
             // Load Effective Address
             Opcode::LEAR64FROMSTRADDR { r64, str_sym, addend: _ } => {
@@ -547,6 +600,13 @@ impl Opcode {
             // Call
             Opcode::CALLFUNC(func) => format!("{} {}", self.opcode_to_at(), func.to_at_string()),
 
+            // Compare Two Operands
+            Opcode::CMPRAXIMM32 { imm, } => format!("{} {}, %rax", self.opcode_to_at(), imm.to_at_string()),
+
+            // Jump
+            Opcode::JMPLABEL { label } => format!("{} {}", self.opcode_to_at(), label),
+            Opcode::JELABEL { label } => format!("{} {}", self.opcode_to_at(), label),
+
             // Load Effective Address
             Opcode::LEAR64FROMSTRADDR { r64, str_sym, addend: _ } => {
                 format!("{} {}, {}", self.opcode_to_at(), str_sym, r64.to_at_string())
@@ -609,6 +669,13 @@ impl Opcode {
             // Call
             Opcode::CALLFUNC(_func) => "call",
 
+            // Compare Two Operands
+            Opcode::CMPRAXIMM32 { imm: _, } => "cmp",
+
+            // Jump
+            Opcode::JMPLABEL { label: _ } => "jmp",
+            Opcode::JELABEL { label: _ } => "je",
+
             // Load Effective Address
             Opcode::LEAR64FROMSTRADDR { r64: _, str_sym: _, addend: _ } => "lea",
 
@@ -670,6 +737,13 @@ impl Opcode {
 
             // Call
             Opcode::CALLFUNC(_func) => "call",
+
+            // Compare Two Operands
+            Opcode::CMPRAXIMM32 { imm: _, } => "cmpq",
+
+            // Jump
+            Opcode::JMPLABEL { label: _ } => "jmp",
+            Opcode::JELABEL { label: _ } => "je",
 
             // Load Effective Address
             Opcode::LEAR64FROMSTRADDR { r64: _, str_sym: _, addend: _ } => "leaq",

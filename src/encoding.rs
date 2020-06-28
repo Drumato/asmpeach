@@ -1,6 +1,7 @@
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum Encoding {
     ZO,
+    D,
 
     /// Ope1 -> ModRM:reg,   Ope2 -> ModRM:r/m
     RM,
