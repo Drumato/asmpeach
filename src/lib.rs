@@ -11,6 +11,9 @@ mod disp;
 mod tests;
 mod group;
 
+#[macro_use]
+pub mod macros;
+
 pub use rex_prefix::*;
 pub use modrm::*;
 pub use encoding::*;
