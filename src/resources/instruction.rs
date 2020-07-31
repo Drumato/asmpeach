@@ -1,4 +1,4 @@
-use crate::{Opcode};
+use crate::resources::{Opcode};
 
 /// An implementation of x64 instruction.
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]

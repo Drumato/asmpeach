@@ -8,27 +8,15 @@ x86_64 assembler
 See **[documentation](https://docs.rs/x64_asm)**
 
 ```rust
-use x64_asm::*;
+use x64_asm;
+use x64_asm::resources;
 
 fn main() {
-    // mov [rax + rbx * 4], rcx
-    let inst = Instruction {
-        opcode: Opcode::MOVRM64R64 {
-            rm64: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: Some(GeneralPurposeRegister::RBX),
-                displacement: None,
-                scale: Some(0x4),
-            },
-            r64: Operand::GENERALREGISTER(GeneralPurposeRegister::RCX),
-        }
-    };
-
-    // we can assemble(translate to machine-code) Every instruction.
-    assert_eq!(inst.to_bytes(), vec![0x48, 0x89, 0x0c, 0x98]);
-    
-    // also can generate AT&T/Intel syntax's string for creating assembly files.
-    assert_eq!(inst.to_intel_string(), "mov QWORD PTR [rax + rbx * 4], rcx");
-    assert_eq!(inst.to_at_string(), "movq %rcx, (%rax, %rbx, 4)");
+    // you can pass a file(or string).
+    let _obj_file = x64_asm::assemble_file("asm.s", "obj.o", resources::INTEL);
 }
 ```
+
+##  Dependencies
+
+- [Drumato/elf-utilities](https://github.com/Drumato/elf-utilities)

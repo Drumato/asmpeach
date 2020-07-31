@@ -1,4 +1,4 @@
-use crate::*;
+use crate::resources::*;
 
 #[allow(dead_code)]
 const SUBRM64R64_CASES: [Instruction; 1] = [

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod format_tests {
-    use crate::*;
+    use crate::resources::*;
 
     #[test]
     fn display_sib_byte_test() {

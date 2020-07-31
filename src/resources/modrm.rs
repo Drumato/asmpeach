@@ -1,4 +1,4 @@
-use crate::{Operand, GeneralPurposeRegister};
+use crate::resources::{Operand, GeneralPurposeRegister};
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub struct ModRM {
