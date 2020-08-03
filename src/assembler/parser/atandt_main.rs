@@ -14,7 +14,7 @@ enum State {
     InSymbol(String),
 }
 
-pub fn parse_atandt(source: String) {
+pub fn parse_atandt(source: String) -> BTreeMap<String, Symbol> {
     let lines_iter = source.lines();
     let mut context = Context {
         state: State::TopLevel,
@@ -27,6 +27,8 @@ pub fn parse_atandt(source: String) {
             State::InSymbol(sym_name) => context.in_symbol(l, &sym_name),
         }
     }
+
+    context.syms
 }
 
 impl Context {
@@ -126,7 +128,10 @@ impl Context {
             },
             Operand::Immediate(imm) => match &dst_op {
                 // movq $42, %rax
-                Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM64IMM32 { rm64: dst_op, imm: imm.as_32bit() },
+                Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM64IMM32 {
+                    rm64: dst_op,
+                    imm: imm.as_32bit(),
+                },
                 // movq $42, (%rax)
                 _ => unreachable!(),
             },
@@ -142,7 +147,9 @@ impl Context {
 
         let operand = Self::parse_operand(operand.unwrap());
         let opcode = match operand {
-            Operand::Immediate(imm) => Opcode::PUSHIMM32 { imm: imm.as_32bit() },
+            Operand::Immediate(imm) => Opcode::PUSHIMM32 {
+                imm: imm.as_32bit(),
+            },
             Operand::GENERALREGISTER(reg) => Opcode::PUSHR64 { r64: reg },
             _ => unreachable!(),
         };
@@ -178,13 +185,13 @@ impl Context {
 
     fn push_inst_cur_sym(&mut self, sym_name: &str, inst: Instruction) {
         if let Some(sym) = self.syms.get_mut(sym_name) {
-            if sym.labels.is_empty() {
-                sym.labels
+            if sym.groups.is_empty() {
+                sym.groups
                     .push(Group::new(&format!(".L{}_entry", sym_name)));
             }
 
-            let group_idx = sym.labels.len() - 1;
-            sym.labels[group_idx].insts.push(inst);
+            let group_idx = sym.groups.len() - 1;
+            sym.groups[group_idx].insts.push(inst);
 
             return;
         }
@@ -196,7 +203,7 @@ impl Context {
         self.syms
             .get_mut(sym_name)
             .unwrap()
-            .labels
+            .groups
             .push(Group::new(label_name));
     }
 
@@ -252,7 +259,7 @@ mod parse_tests {
             Opcode::PUSHR64 {
                 r64: GeneralPurposeRegister::RAX
             },
-            ctxt.syms.get("main").unwrap().labels[0].insts[0].opcode
+            ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
         );
     }
 
@@ -266,7 +273,7 @@ mod parse_tests {
                 imm: Immediate::I32(42),
                 rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
             },
-            ctxt.syms.get("main").unwrap().labels[0].insts[0].opcode
+            ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
         );
     }
 
@@ -277,10 +284,10 @@ mod parse_tests {
 
         ctxt.in_symbol("  ret\n", "main");
         assert_eq!(State::InSymbol("main".to_string()), ctxt.state);
-        assert_eq!(1, ctxt.syms.get("main").unwrap().labels[0].insts.len());
+        assert_eq!(1, ctxt.syms.get("main").unwrap().groups[0].insts.len());
         assert_eq!(
             Opcode::RET,
-            ctxt.syms.get("main").unwrap().labels[0].insts[0].opcode
+            ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
         );
     }
 

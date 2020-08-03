@@ -3,19 +3,22 @@ use elf_utilities::symbol;
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub struct Symbol {
-    pub labels: Vec<Group>,
+    pub groups: Vec<Group>,
     /// Symbol Visibility(GLOBAL/LOCAL/etc.)
     pub visibility: u8,
     /// Symbol Type(NOTYPE/FUNCTION/etc.)
     pub ty: u8,
+    /// machine codes
+    pub codes: Vec<u8>,
 }
 
 impl Default for Symbol {
     fn default() -> Self {
         Self {
-            labels: Vec::new(),
+            groups: Vec::new(),
             ty: 0,
             visibility: symbol::STB_LOCAL,
+            codes: Vec::new(),
         }
     }
 }
