@@ -93,6 +93,7 @@ impl Context {
 
         // 各命令ごとにパース
         match opcode {
+            "movq" => self.parse_movq_inst(&mut iterator, sym_name),
             "pushq" => self.parse_pushq_inst(&mut iterator, sym_name),
             "ret" => self.push_inst_cur_sym(
                 sym_name,
@@ -104,13 +105,44 @@ impl Context {
         }
     }
 
+    fn parse_movq_inst(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str) {
+        let src = iter.next();
+        assert!(src.is_some());
+        let src_op = Self::parse_operand(src.unwrap());
+
+        let dst = iter.next();
+        assert!(dst.is_some());
+        let dst_op = Self::parse_operand(dst.unwrap());
+
+        let opcode = match src_op {
+            Operand::GENERALREGISTER(src_gpr) => match &dst_op {
+                // movq %rax, %rbx
+                Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM64R64 {
+                    rm64: dst_op,
+                    r64: src_gpr,
+                },
+                // movq %rax, -8(%rbp)
+                _ => unreachable!(),
+            },
+            Operand::Immediate(imm) => match &dst_op {
+                // movq $42, %rax
+                Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM64IMM32 { rm64: dst_op, imm: imm.as_32bit() },
+                // movq $42, (%rax)
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
+
+        self.push_inst_cur_sym(sym_name, Instruction { opcode });
+        assert!(iter.next().is_none());
+    }
     fn parse_pushq_inst(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str) {
         let operand = iter.next();
         assert!(operand.is_some());
 
         let operand = Self::parse_operand(operand.unwrap());
         let opcode = match operand {
-            Operand::Immediate(imm) => Opcode::PUSHIMM32 { imm },
+            Operand::Immediate(imm) => Opcode::PUSHIMM32 { imm: imm.as_32bit() },
             Operand::GENERALREGISTER(reg) => Opcode::PUSHR64 { r64: reg },
             _ => unreachable!(),
         };
@@ -120,13 +152,14 @@ impl Context {
     }
 
     fn parse_operand(operand: &str) -> Operand {
+        let stripped = Self::remove_pat_and_newline(operand, ",");
         // レジスタの場合
-        if operand.starts_with('%') {
-            return Operand::GENERALREGISTER(GeneralPurposeRegister::from_at_string(operand));
+        if stripped.starts_with('%') {
+            return Operand::GENERALREGISTER(GeneralPurposeRegister::from_at_string(&stripped));
         }
 
         // 即値の場合
-        let immediate = operand.trim_start_matches('$');
+        let immediate = stripped.trim_start_matches('$');
         match immediate.parse::<i8>() {
             Ok(v) => {
                 return Operand::Immediate(Immediate::I8(v));
@@ -135,11 +168,12 @@ impl Context {
                 Ok(v) => {
                     return Operand::Immediate(Immediate::I32(v));
                 }
+                // 即値オペランドでなかった場合
                 Err(_e) => {}
             },
         }
 
-        Operand::LABEL(operand.to_string())
+        Operand::LABEL(stripped.to_string())
     }
 
     fn push_inst_cur_sym(&mut self, sym_name: &str, inst: Instruction) {
@@ -223,6 +257,20 @@ mod parse_tests {
     }
 
     #[test]
+    fn parse_moveq_test() {
+        let mut ctxt = new_context();
+        ctxt.toplevel("main:    \n");
+        ctxt.in_symbol("movq $42, %rax", "main");
+        assert_eq!(
+            Opcode::MOVRM64IMM32 {
+                imm: Immediate::I32(42),
+                rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
+            },
+            ctxt.syms.get("main").unwrap().labels[0].insts[0].opcode
+        );
+    }
+
+    #[test]
     fn parse_ret_test() {
         let mut ctxt = new_context();
         ctxt.toplevel("main:    \n");
@@ -241,6 +289,10 @@ mod parse_tests {
         assert_eq!(
             Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
             Context::parse_operand("%rax")
+        );
+        assert_eq!(
+            Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
+            Context::parse_operand("%rax,")
         );
         assert_eq!(
             Operand::Immediate(Immediate::I8(30)),
