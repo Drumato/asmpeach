@@ -96,6 +96,7 @@ impl Context {
         // 各命令ごとにパース
         match opcode {
             "movq" => self.parse_movq_inst(&mut iterator, sym_name),
+            "popq" => self.parse_popq_inst(&mut iterator, sym_name),
             "pushq" => self.parse_pushq_inst(&mut iterator, sym_name),
             "ret" => self.push_inst_cur_sym(
                 sym_name,
@@ -141,6 +142,21 @@ impl Context {
         self.push_inst_cur_sym(sym_name, Instruction { opcode });
         assert!(iter.next().is_none());
     }
+
+    fn parse_popq_inst(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str) {
+        let operand = iter.next();
+        assert!(operand.is_some());
+
+        let operand = Self::parse_operand(operand.unwrap());
+        let opcode = match operand {
+            Operand::GENERALREGISTER(reg) => Opcode::POPR64 { r64: reg },
+            _ => unreachable!(),
+        };
+        self.push_inst_cur_sym(sym_name, Instruction { opcode });
+
+        assert!(iter.next().is_none());
+    }
+
     fn parse_pushq_inst(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str) {
         let operand = iter.next();
         assert!(operand.is_some());
@@ -263,6 +279,18 @@ mod parse_tests {
         );
     }
 
+    #[test]
+    fn parse_popq_test() {
+        let mut ctxt = new_context();
+        ctxt.toplevel("main:    \n");
+        ctxt.in_symbol("    popq %rax", "main");
+        assert_eq!(
+            Opcode::POPR64 {
+                r64: GeneralPurposeRegister::RAX
+            },
+            ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
+        );
+    }
     #[test]
     fn parse_moveq_test() {
         let mut ctxt = new_context();
