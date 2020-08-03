@@ -1,11 +1,10 @@
-use std::collections::BTreeMap;
-
 use crate::resources::*;
+use indexmap::map::IndexMap;
 use std::str::SplitAsciiWhitespace;
 
 struct Context {
     state: State,
-    syms: BTreeMap<String, Symbol>,
+    syms: IndexMap<String, Symbol>,
 }
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
@@ -14,7 +13,7 @@ enum State {
     InSymbol(String),
 }
 
-pub fn parse_atandt(source: String) -> BTreeMap<String, Symbol> {
+pub fn parse_atandt(source: String) -> IndexMap<String, Symbol> {
     let lines_iter = source.lines();
     let mut context = Context {
         state: State::TopLevel,
@@ -290,6 +289,14 @@ mod parse_tests {
             },
             ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
         );
+
+        ctxt.in_symbol("    popq     %rbp", "main");
+        assert_eq!(
+            Opcode::POPR64 {
+                r64: GeneralPurposeRegister::RBP
+            },
+            ctxt.syms.get("main").unwrap().groups[0].insts[1].opcode
+        );
     }
     #[test]
     fn parse_moveq_test() {
@@ -345,7 +352,7 @@ mod parse_tests {
     fn new_context() -> Context {
         Context {
             state: State::TopLevel,
-            syms: BTreeMap::new(),
+            syms: IndexMap::new(),
         }
     }
 }

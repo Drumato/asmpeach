@@ -15,7 +15,27 @@ pub fn assemble_file(
     };
     generator::generate_main(&mut symbols);
 
-    let builder = ELFBuilder::new(output_file.to_string());
+    let mut builder = ELFBuilder::new(output_file.to_string());
+
+    // (NULL) セクション
+    builder.add_section(elf_utilities::section::Section64::new_null_section());
+    // .text セクション
+    builder.add_text_section(&symbols);
+    // .symtab セクション
+    builder.add_symbol_table_section(&symbols);
+    // .strtab セクション
+    builder.add_symtab_string_section(&symbols);
+    // .rela.text セクション
+    // object_file_builder.add_relatext_section(&generator);
+    // .nodata セクション
+    builder.add_nodata_section();
+    // .rodata セクション
+    // object_file_builder.add_rodata_section(&symbols);
+    // .shstrtab セクション
+    builder.add_shstrtab_string_section();
+
+    // ヘッダの調整
+    builder.condition_elf_header();
 
     Ok(builder)
 }
