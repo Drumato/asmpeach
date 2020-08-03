@@ -50,7 +50,7 @@ fn gen_group_code(
         tup.1 = *code_offset - tup.1 - 1;
     } else {
         // ラベルがjump系命令の前に存在した場合
-        if !group.label.starts_with("entry_") {
+        if !group.label.ends_with("_entry") {
             // ラベルの位置を保存しておく
             relative_jump_offset.insert(group.label.to_string(), (0, *code_offset));
         }

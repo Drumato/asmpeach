@@ -15,7 +15,7 @@ impl ELFBuilder {
     pub fn new(file_path: String) -> Self {
         Self {
             output_filepath: file_path,
-            file: ELF64::new(Default::default()),
+            file: ELF64::new(Self::initialize_elf64_header()),
         }
     }
     pub fn generate_elf_file(&self, mode: u32) {
@@ -244,5 +244,26 @@ impl ELFBuilder {
         symbol.set_info(sym_info);
 
         symbol
+    }
+
+    fn initialize_elf64_header() -> elf_utilities::header::Ehdr64 {
+        let mut ehdr: elf_utilities::header::Ehdr64 = Default::default();
+
+        // アーキテクチャ -> X86_64
+        ehdr.set_machine(elf_utilities::header::ELFMACHINE::EMX8664);
+
+        // クラス -> 64bit
+        ehdr.set_class(elf_utilities::header::ELFCLASS::CLASS64);
+
+        // タイプ -> RELOCATION
+        ehdr.set_elf_type(elf_utilities::header::ELFTYPE::REL);
+
+        // データ -> Little Endian
+        ehdr.set_data(elf_utilities::header::ELFDATA::DATA2LSB);
+
+        // バージョン -> EV_CURRENT
+        ehdr.set_version(elf_utilities::header::ELFVERSION::VERSIONCURRENT);
+
+        ehdr
     }
 }
