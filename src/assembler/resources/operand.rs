@@ -1,4 +1,4 @@
-use crate::resources::{AddressingMode, Displacement, GeneralPurposeRegister, Immediate, SIBByte, RegisterSize};
+use crate::assembler::resources::{AddressingMode, Displacement, GeneralPurposeRegister, Immediate, SIBByte, RegisterSize};
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Operand {

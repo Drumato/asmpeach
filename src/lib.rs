@@ -1,10 +1,5 @@
-mod tests;
-mod resources;
+//! An x86_64 assembler.
+
 mod assembler;
 
-pub use resources::*;
-
 pub use assembler::*;
-
-#[macro_use]
-pub mod macros;

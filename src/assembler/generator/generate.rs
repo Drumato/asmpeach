@@ -1,4 +1,4 @@
-use crate::{Group, Opcode, Symbol};
+use crate::assembler::resources::{Group, Opcode, Symbol};
 use indexmap::map::IndexMap;
 
 type OffsetForRelativeJump = IndexMap<String, (isize, isize)>;

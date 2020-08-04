@@ -1,5 +1,4 @@
-use crate::assembler::{generator, parser};
-use crate::resources::{ELFBuilder, Syntax};
+use crate::assembler::{generator, parser, resources::{ELFBuilder, Syntax}};
 use std::fs;
 
 /// translate assembly file into object file
@@ -9,6 +8,42 @@ pub fn assemble_file(
     syntax: Syntax,
 ) -> Result<ELFBuilder, Box<dyn std::error::Error>> {
     let source = fs::read_to_string(input_file)?;
+    let builder = assemble(source, output_file, syntax);
+
+    Ok(builder)
+}
+
+
+/// translate assembly code into object file.
+///
+/// # Examples
+///
+/// ```
+/// use x64_asm::*;
+///
+/// let s = "    .globl main
+///     .type main, @function
+/// main:
+///     pushq %rbp
+///     movq %rsp, %rbp
+///     movq $42, %rax
+///     popq %rbp
+///     ret"
+///     .to_string();
+/// let elf_builder = assemble_code(s, "obj.o", Syntax::ATANDT).unwrap();
+/// elf_builder.generate_elf_file(0o644);
+/// ```
+pub fn assemble_code(
+    assembly_code: String,
+    output_file: &str,
+    syntax: Syntax,
+) -> Result<ELFBuilder, Box<dyn std::error::Error>> {
+    let builder = assemble(assembly_code, output_file, syntax);
+
+    Ok(builder)
+}
+
+fn assemble(source: String, output_file: &str, syntax: Syntax) -> ELFBuilder {
     let mut symbols = match syntax {
         Syntax::INTEL => unimplemented!(),
         Syntax::ATANDT => parser::parse_atandt(source),
@@ -37,5 +72,5 @@ pub fn assemble_file(
     // ヘッダの調整
     builder.condition_elf_header();
 
-    Ok(builder)
+    builder
 }

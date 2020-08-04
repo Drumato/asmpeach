@@ -1,4 +1,4 @@
-use crate::resources::Group;
+use crate::assembler::resources::Group;
 use elf_utilities::symbol;
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
@@ -24,29 +24,10 @@ impl Default for Symbol {
 }
 
 impl Symbol {
-    /// ```
-    /// use x64_asm::Symbol;
-    ///
-    /// let mut s : Symbol = Default::default();
-    /// assert!(!s.is_function());
-    ///
-    /// s.as_function();
-    /// assert!(s.is_function());
-    /// ```
     pub fn as_function(&mut self) {
         self.ty = symbol::STT_FUNC;
     }
 
-
-    /// ```
-    /// use x64_asm::Symbol;
-    ///
-    /// let mut s : Symbol = Default::default();
-    /// assert!(!s.is_global());
-    ///
-    /// s.as_global();
-    /// assert!(s.is_global());
-    /// ```
     pub fn as_global(&mut self) {
         self.visibility = symbol::STB_GLOBAL;
     }

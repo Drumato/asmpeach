@@ -1,4 +1,5 @@
-use crate::resources::*;
+use crate::assembler::resources::*;
+
 #[allow(dead_code)]
 const MOVRM8R8_CASES: [Instruction; 2] = [
     Instruction {

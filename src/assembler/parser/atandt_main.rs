@@ -1,4 +1,4 @@
-use crate::resources::*;
+use crate::assembler::resources::*;
 use indexmap::map::IndexMap;
 use std::str::SplitAsciiWhitespace;
 
@@ -12,7 +12,7 @@ enum State {
     TopLevel,
     InSymbol(String),
 }
-
+/// parse AT&T syntax assembly.
 pub fn parse_atandt(source: String) -> IndexMap<String, Symbol> {
     let lines_iter = source.lines();
     let mut context = Context {
@@ -298,6 +298,7 @@ mod parse_tests {
             ctxt.syms.get("main").unwrap().groups[0].insts[1].opcode
         );
     }
+
     #[test]
     fn parse_moveq_test() {
         let mut ctxt = new_context();

@@ -1,4 +1,4 @@
-use crate::resources::*;
+use crate::assembler::resources::*;
 
 #[allow(dead_code)]
 const PUSHIMM32_CASES: [Instruction; 1] = [

@@ -1,5 +1,4 @@
-use crate::resources::{GeneralPurposeRegister, Operand};
-
+use crate::assembler::resources::*;
 use fmt::Formatter;
 use std::fmt;
 

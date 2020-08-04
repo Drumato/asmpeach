@@ -1,4 +1,4 @@
-use crate::resources::{Operand, GeneralPurposeRegister};
+use crate::assembler::resources::{Operand, GeneralPurposeRegister};
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub struct ModRM {

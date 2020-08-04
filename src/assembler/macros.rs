@@ -43,12 +43,8 @@ macro_rules! new_imm32{
 
 #[cfg(test)]
 mod macros_tests {
-    use crate::{
-        GeneralPurposeRegister as GPR,
-        Operand,
-        Opcode,
-        Immediate,
-    };
+    use crate::assembler::resources::*;
+    use GeneralPurposeRegister as GPR;
 
     #[test]
     fn newr64rm64_test() {

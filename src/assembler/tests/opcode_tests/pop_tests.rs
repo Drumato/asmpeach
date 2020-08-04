@@ -1,4 +1,4 @@
-use crate::*;
+use crate::assembler::resources::*;
 
 #[allow(dead_code)]
 const POPR64_CASES: [Instruction; 2] = [
