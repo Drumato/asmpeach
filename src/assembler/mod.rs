@@ -6,7 +6,4 @@ mod parser;
 mod generator;
 mod resources;
 mod tests;
-#[macro_use]
-mod macros;
-
 pub use resources::{ELFBuilder, Syntax};

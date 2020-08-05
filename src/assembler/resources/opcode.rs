@@ -1,4 +1,4 @@
-use crate::assembler::resources::{Displacement, Encoding, GeneralPurposeRegister, Immediate, ModRM, Operand, REXPrefix, SIBByte, AddressingMode};
+use crate::assembler::resources::*;
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Opcode {
@@ -793,6 +793,41 @@ impl Opcode {
 
             // etc
             Opcode::COMMENT(_com) => "",
+        }
+    }
+
+    pub fn mov(size: OperandSize, src: Operand, dst: Operand) -> Self {
+        match size {
+            OperandSize::QWORD => match src {
+                Operand::GENERALREGISTER(src_gpr) => match dst {
+                    Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM64R64{r64: src_gpr, rm64: dst},
+                    _ => unreachable!(),
+                },
+                Operand::Immediate(imm) => match dst{
+                    Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM64IMM32{imm, rm64: dst},
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+    pub fn push(size: OperandSize, operand: Operand) -> Self {
+        match size{
+            OperandSize::QWORD => match operand {
+                Operand::GENERALREGISTER(gpr) => Opcode::PUSHR64{r64:gpr},
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+    pub fn pop(size: OperandSize, operand: Operand) -> Self {
+        match size{
+            OperandSize::QWORD => match operand {
+                Operand::GENERALREGISTER(gpr) => Opcode::POPR64{r64:gpr},
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
         }
     }
 }

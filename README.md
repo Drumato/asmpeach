@@ -21,6 +21,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
 }
 ```
 
+## Test
+
+```
+cargo test
+```
+
 ##  Dependencies
 
 - [Drumato/elf-utilities](https://github.com/Drumato/elf-utilities)

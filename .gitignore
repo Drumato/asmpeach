@@ -1,3 +1,5 @@
 /target
 Cargo.lock
 /.idea
+obj.o
+a.out

@@ -10,7 +10,6 @@ pub enum Operand {
     // MMX
     // XMM
     // CONTROL
-
     /// memory addressing
     /// ex. [rax], -4[rbp]
     ADDRESSING {
@@ -277,4 +276,53 @@ impl Operand {
             }
         }
     }
+
+    pub fn to_64bit(&self) -> Self {
+        match self {
+            Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_64bit()),
+            Operand::Immediate(imm) => Operand::Immediate(imm.as_32bit()),
+            Operand::ADDRESSING {
+                base_reg: _,
+                index_reg: _,
+                displacement: _,
+                scale: _,
+            } => self.clone(),
+            Operand::LABEL(_label) => unreachable!(),
+        }
+    }
+
+    pub fn size(&self) -> OperandSize {
+        match self{
+            Operand::GENERALREGISTER(gpr) => match gpr.size(){
+                RegisterSize::S8 => OperandSize::BYTE,
+                RegisterSize::S16 => OperandSize::WORD,
+                RegisterSize::S32 => OperandSize::DWORD,
+                RegisterSize::S64 => OperandSize::QWORD,
+            },
+            Operand::ADDRESSING {
+                base_reg,
+                index_reg: _,
+                displacement: _,
+                scale: _,
+            } => match base_reg.size() {
+                RegisterSize::S8 => OperandSize::BYTE,
+                RegisterSize::S16 => OperandSize::WORD,
+                RegisterSize::S32 => OperandSize::DWORD,
+                RegisterSize::S64 => OperandSize::QWORD,
+            },
+            Operand::LABEL(_label) => unreachable!(),
+            Operand::Immediate(imm) => match imm {
+                Immediate::I8(_v) => OperandSize::BYTE,
+                Immediate::I32(_v) => OperandSize::DWORD,
+            },
+        }
+    }
+}
+
+#[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
+pub enum OperandSize {
+    BYTE,
+    WORD,
+    DWORD,
+    QWORD
 }

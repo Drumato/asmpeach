@@ -12,6 +12,7 @@ enum State {
     TopLevel,
     InSymbol(String),
 }
+
 /// parse AT&T syntax assembly.
 pub fn parse_atandt(source: String) -> IndexMap<String, Symbol> {
     let lines_iter = source.lines();
@@ -20,6 +21,7 @@ pub fn parse_atandt(source: String) -> IndexMap<String, Symbol> {
         syms: Default::default(),
     };
 
+    // 各行に対して処理を行う
     for l in lines_iter {
         match context.state.clone() {
             State::TopLevel => context.toplevel(l),
@@ -46,34 +48,41 @@ impl Context {
         }
 
         let mut iterator = line.split_ascii_whitespace();
+
+        self.parse_directive(&mut iterator);
+    }
+
+    fn parse_directive(&mut self, iterator: &mut SplitAsciiWhitespace) {
         let directive = iterator.next().unwrap();
 
         match directive {
-            ".global" | ".globl" => {
-                let sym_name = iterator.next().unwrap().to_string();
-
-                self.syms
-                    .entry(sym_name)
-                    .or_insert_with(Symbol::default)
-                    .as_global();
-                assert!(iterator.next().is_none());
-                return;
-            }
-            ".type" => {
-                let sym_name = Self::remove_pat_and_newline(iterator.next().unwrap(), ",");
-                let sym_type = iterator.next().unwrap();
-                assert_eq!(sym_type, "@function");
-
-                self.syms
-                    .entry(sym_name)
-                    .or_insert_with(Symbol::default)
-                    .as_function();
-                return;
-            }
+            ".global" | ".globl" => self.parse_global_directive(iterator),
+            ".type" => self.parse_symbol_type_directive(iterator),
             _ => {}
         }
+    }
 
-        unreachable!()
+    /// `.global main` みたいなやつ
+    fn parse_global_directive(&mut self, iterator: &mut SplitAsciiWhitespace) {
+        let sym_name = iterator.next().unwrap().to_string();
+
+        self.syms
+            .entry(sym_name)
+            .or_insert_with(Symbol::default)
+            .as_global();
+        assert!(iterator.next().is_none());
+    }
+
+    /// `.type main, @function` みたいなやつ
+    fn parse_symbol_type_directive(&mut self, iterator: &mut SplitAsciiWhitespace) {
+        let sym_name = Self::remove_pat_and_newline(iterator.next().unwrap(), ",");
+        let sym_type = iterator.next().unwrap();
+        assert_eq!(sym_type, "@function");
+
+        self.syms
+            .entry(sym_name)
+            .or_insert_with(Symbol::default)
+            .as_function();
     }
 
     // シンボル名をパース後
@@ -92,22 +101,43 @@ impl Context {
             return;
         }
 
-        // 各命令ごとにパース
-        match opcode {
-            "movq" => self.parse_movq_inst(&mut iterator, sym_name),
-            "popq" => self.parse_popq_inst(&mut iterator, sym_name),
-            "pushq" => self.parse_pushq_inst(&mut iterator, sym_name),
-            "ret" => self.push_inst_cur_sym(
-                sym_name,
-                Instruction {
-                    opcode: Opcode::RET,
-                },
-            ),
+        // オペランドの数を調べる．
+        let count = iterator.clone().count();
+
+        match count {
+            0 => self.parse_no_operand_instruction(&mut iterator, sym_name, opcode),
+            1 => self.parse_unary_instruction(&mut iterator, sym_name, opcode),
+            2 => self.parse_binary_instruction(&mut iterator, sym_name, opcode),
             _ => panic!("unsupported instruction -> {}", line),
         }
     }
 
-    fn parse_movq_inst(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str) {
+    fn parse_no_operand_instruction(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str, opcode: &str) {
+        let opcode = match opcode {
+            "ret" => Opcode::RET,
+            _ => unreachable!(),
+        };
+
+        self.push_inst_cur_sym(sym_name, Instruction { opcode });
+        assert!(iter.next().is_none());
+    }
+
+    fn parse_unary_instruction(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str, opcode: &str) {
+        let operand = iter.next();
+        assert!(operand.is_some());
+
+        let operand = Self::parse_operand(operand.unwrap());
+        let opcode = match opcode {
+            "pushq" => Opcode::push(OperandSize::QWORD, operand),
+            "popq" => Opcode::pop(OperandSize::QWORD, operand),
+            _ => unreachable!(),
+        };
+
+        self.push_inst_cur_sym(sym_name, Instruction { opcode });
+        assert!(iter.next().is_none());
+    }
+
+    fn parse_binary_instruction(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str, opcode: &str) {
         let src = iter.next();
         assert!(src.is_some());
         let src_op = Self::parse_operand(src.unwrap());
@@ -116,60 +146,12 @@ impl Context {
         assert!(dst.is_some());
         let dst_op = Self::parse_operand(dst.unwrap());
 
-        let opcode = match src_op {
-            Operand::GENERALREGISTER(src_gpr) => match &dst_op {
-                // movq %rax, %rbx
-                Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM64R64 {
-                    rm64: dst_op,
-                    r64: src_gpr,
-                },
-                // movq %rax, -8(%rbp)
-                _ => unreachable!(),
-            },
-            Operand::Immediate(imm) => match &dst_op {
-                // movq $42, %rax
-                Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM64IMM32 {
-                    rm64: dst_op,
-                    imm: imm.as_32bit(),
-                },
-                // movq $42, (%rax)
-                _ => unreachable!(),
-            },
+        let opcode = match opcode {
+            "movq" => Opcode::mov(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
             _ => unreachable!(),
         };
 
         self.push_inst_cur_sym(sym_name, Instruction { opcode });
-        assert!(iter.next().is_none());
-    }
-
-    fn parse_popq_inst(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str) {
-        let operand = iter.next();
-        assert!(operand.is_some());
-
-        let operand = Self::parse_operand(operand.unwrap());
-        let opcode = match operand {
-            Operand::GENERALREGISTER(reg) => Opcode::POPR64 { r64: reg },
-            _ => unreachable!(),
-        };
-        self.push_inst_cur_sym(sym_name, Instruction { opcode });
-
-        assert!(iter.next().is_none());
-    }
-
-    fn parse_pushq_inst(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str) {
-        let operand = iter.next();
-        assert!(operand.is_some());
-
-        let operand = Self::parse_operand(operand.unwrap());
-        let opcode = match operand {
-            Operand::Immediate(imm) => Opcode::PUSHIMM32 {
-                imm: imm.as_32bit(),
-            },
-            Operand::GENERALREGISTER(reg) => Opcode::PUSHR64 { r64: reg },
-            _ => unreachable!(),
-        };
-        self.push_inst_cur_sym(sym_name, Instruction { opcode });
-
         assert!(iter.next().is_none());
     }
 

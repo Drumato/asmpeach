@@ -1,16 +1,16 @@
 use crate::assembler::{generator, parser, resources::{ELFBuilder, Syntax}};
 use std::fs;
 
+type ELFOrError = Result<ELFBuilder, Box<dyn std::error::Error>>;
+
 /// translate assembly file into object file
 pub fn assemble_file(
     input_file: &str,
     output_file: &str,
     syntax: Syntax,
-) -> Result<ELFBuilder, Box<dyn std::error::Error>> {
+) -> ELFOrError {
     let source = fs::read_to_string(input_file)?;
-    let builder = assemble(source, output_file, syntax);
-
-    Ok(builder)
+    assemble(source, output_file, syntax)
 }
 
 
@@ -37,17 +37,16 @@ pub fn assemble_code(
     assembly_code: String,
     output_file: &str,
     syntax: Syntax,
-) -> Result<ELFBuilder, Box<dyn std::error::Error>> {
-    let builder = assemble(assembly_code, output_file, syntax);
-
-    Ok(builder)
+) -> ELFOrError {
+    assemble(assembly_code, output_file, syntax)
 }
 
-fn assemble(source: String, output_file: &str, syntax: Syntax) -> ELFBuilder {
+fn assemble(source: String, output_file: &str, syntax: Syntax) -> ELFOrError {
     let mut symbols = match syntax {
         Syntax::INTEL => unimplemented!(),
         Syntax::ATANDT => parser::parse_atandt(source),
     };
+
     generator::generate_main(&mut symbols);
 
     let mut builder = ELFBuilder::new(output_file.to_string());
@@ -72,5 +71,5 @@ fn assemble(source: String, output_file: &str, syntax: Syntax) -> ELFBuilder {
     // ヘッダの調整
     builder.condition_elf_header();
 
-    builder
+    Ok(builder)
 }
