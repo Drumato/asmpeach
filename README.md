@@ -9,11 +9,10 @@ See **[documentation](https://docs.rs/x64_asm)**
 
 ```rust
 use x64_asm;
-use x64_asm::resources;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{
     // you can pass a file(or string).
-    let elf_builder = x64_asm::assemble_file("asm.s", "obj.o", resources::ATANDT)?;
+    let elf_builder = x64_asm::assemble_file("asm.s", "obj.o", x64_asm::Syntax::ATANDT)?;
     
     elf_builder.generate_elf_file(0o644);
 

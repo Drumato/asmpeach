@@ -122,20 +122,25 @@ impl ELFBuilder {
     }
 
     pub fn add_relatext_section(&mut self, reloc_syms: &IndexMap<String, Vec<RelaSymbol>>) {
-        // Relaオブジェクトをバイナリに変換
-        let mut rela_table_binary: Vec<u8> = Vec::new();
+        let mut relas = Vec::new();
 
         for (_rela_name, relocs_in_syms) in reloc_syms.iter() {
             for rela in relocs_in_syms.iter() {
-                let mut rela_entry_binary = rela.to_le_bytes();
-                rela_table_binary.append(&mut rela_entry_binary);
+                relas.push(rela.rela64);
             }
         }
 
+        // Relaオブジェクトをバイナリに変換
+        let mut rela_table_binary: Vec<u8> = Vec::new();
+        for rela in relas.iter() {
+            let mut rela_entry_binary = rela.to_le_bytes();
+            rela_table_binary.append(&mut rela_entry_binary);
+        }
+
         let relatext_hdr = self.init_relatext_header(rela_table_binary.len() as u64);
-        let relatext_section =
+        let mut relatext_section =
             elf_utilities::section::Section64::new(".rela.text".to_string(), relatext_hdr);
-        // relatext_section.rela_symbols = Some(rela_vector);
+        relatext_section.rela_symbols = Some(relas);
         self.add_section(relatext_section);
     }
 
