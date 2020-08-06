@@ -24,6 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
 
 ```
 cargo test
+cargo test --features sample
 ```
 
 ##  Dependencies
