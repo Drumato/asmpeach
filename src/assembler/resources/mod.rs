@@ -12,7 +12,9 @@ mod rex_prefix;
 mod sib_byte;
 mod symbol;
 mod syntax;
+mod relocation;
 
+pub use relocation::*;
 pub use disp::*;
 pub use elf_builder::*;
 pub use encoding::*;

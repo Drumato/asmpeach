@@ -3,7 +3,7 @@ use elf_utilities::{
 };
 use std::io::{BufWriter, Write};
 use std::os::unix::fs::OpenOptionsExt;
-use crate::assembler::resources::Symbol;
+use crate::assembler::resources::{RelaSymbol, Symbol};
 use indexmap::map::IndexMap;
 
 pub struct ELFBuilder {
@@ -105,7 +105,6 @@ impl ELFBuilder {
         self.add_section(symtab_section);
     }
 
-
     pub fn add_symtab_string_section(&mut self, symbols: &IndexMap<String, Symbol>) {
         // シンボルマップをイテレートして,名前を集める.
         let symbol_names: Vec<&str> = symbols
@@ -122,6 +121,24 @@ impl ELFBuilder {
         self.add_section(strtab_section);
     }
 
+    pub fn add_relatext_section(&mut self, reloc_syms: &IndexMap<String, Vec<RelaSymbol>>) {
+        // Relaオブジェクトをバイナリに変換
+        let mut rela_table_binary: Vec<u8> = Vec::new();
+
+        for (_rela_name, relocs_in_syms) in reloc_syms.iter() {
+            for rela in relocs_in_syms.iter() {
+                let mut rela_entry_binary = rela.to_le_bytes();
+                rela_table_binary.append(&mut rela_entry_binary);
+            }
+        }
+
+        let relatext_hdr = self.init_relatext_header(rela_table_binary.len() as u64);
+        let relatext_section =
+            elf_utilities::section::Section64::new(".rela.text".to_string(), relatext_hdr);
+        // relatext_section.rela_symbols = Some(rela_vector);
+        self.add_section(relatext_section);
+    }
+
     pub fn add_nodata_section(&mut self) {
         let nodata_header = self.init_nodata_header();
         let mut nodata_section =
@@ -136,6 +153,7 @@ impl ELFBuilder {
             ".text",
             ".symtab",
             ".strtab",
+            ".rela.text",
             ".nodata",
             ".shstrtab",
         ];
@@ -195,6 +213,28 @@ impl ELFBuilder {
         shdr.set_type(elf_utilities::section::TYPE::STRTAB);
         shdr.set_size(length);
         shdr.set_addralign(1);
+
+        shdr
+    }
+
+
+    fn init_relatext_header(
+        &self,
+        length: elf_utilities::Elf64Xword,
+    ) -> elf_utilities::section::Shdr64 {
+        let mut shdr: elf_utilities::section::Shdr64 = Default::default();
+
+        shdr.set_type(elf_utilities::section::TYPE::RELA);
+        shdr.set_size(length);
+        shdr.set_flags(elf_utilities::section::section_flag::SHF_INFO_LINK);
+        shdr.set_addralign(8);
+        shdr.set_entry_size(elf_utilities::relocation::Rela64::size());
+
+        // TODO: シンボルテーブルが2番目にあることを決め打ち
+        shdr.set_link(2);
+
+        // TODO: .textセクションが一番目にあることを決め打ち
+        shdr.set_info(1);
 
         shdr
     }

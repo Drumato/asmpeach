@@ -87,6 +87,14 @@ impl Context {
 
     // シンボル名をパース後
     fn in_symbol(&mut self, line: &str, sym_name: &str) {
+        // シンボル名の場合
+        if line.trim_end().ends_with(':') {
+            let another_sym = Self::remove_pat_and_newline(line, ":");
+            self.state = State::InSymbol(another_sym.clone());
+            self.syms.entry(another_sym).or_insert_with(Symbol::default);
+            return;
+        }
+
         if Self::is_blank_line(line) {
             return;
         }
@@ -94,6 +102,13 @@ impl Context {
         let mut iterator = line.split_ascii_whitespace();
 
         let opcode = iterator.next().unwrap();
+
+        // .global等のディレクティブを見つけたら
+        if self.is_directive_start(opcode){
+            self.state = State::TopLevel;
+            self.toplevel(line);
+            return;
+        }
 
         // シンボル内のラベル
         if opcode.starts_with(".L") {
@@ -130,6 +145,7 @@ impl Context {
         let opcode = match opcode {
             "pushq" => Opcode::push(OperandSize::QWORD, operand),
             "popq" => Opcode::pop(OperandSize::QWORD, operand),
+            "call" => Opcode::call(operand),
             _ => unreachable!(),
         };
 
@@ -178,6 +194,14 @@ impl Context {
         }
 
         Operand::LABEL(stripped.to_string())
+    }
+
+    fn is_directive_start(&self, directive: &str) -> bool {
+        match directive{
+            ".globl" | ".global" | ".type" => true,
+            _ => false,
+        }
+
     }
 
     fn push_inst_cur_sym(&mut self, sym_name: &str, inst: Instruction) {

@@ -4,21 +4,38 @@ mod assemble_tests{
     use std::process::Command;
 
     #[test]
-    fn return_42_test() {
-        assert_eq!(42, build_and_exec("examples/return_42.s"));
+    fn return_42_tests() {
+        assert_eq!(42, build_and_exec("return_42"));
     }
 
-    fn build_and_exec(input_file: &str) -> i32 {
-        let elf_builder = assembler::assemble_file(input_file, "obj.o", assembler::Syntax::ATANDT).unwrap();
+    #[test]
+    fn call_foo_test() {
+        assert_eq!(30, build_and_exec("call_foo"));
+    }
+
+    fn build_and_exec(file_base: &str) -> i32 {
+        let input_file = format!("examples/{}.s", file_base);
+        let output_file = format!("/tmp/{}.o", file_base);
+        let binary_path = format!("./{}", file_base);
+        let elf_builder = assembler::assemble_file(&input_file, &output_file, assembler::Syntax::ATANDT).unwrap();
         elf_builder.generate_elf_file(0o644);
 
         let _compile_cmd = Command::new("gcc")
-        .arg("obj.o")
+        .arg(&output_file)
+        .arg("-o")
+        .arg(file_base)
         .status()
         .expect("failed to spawn a process");
 
-        Command::new("./a.out")
+        let code = Command::new(&binary_path)
         .status()
-        .expect("failed to spawn a process").code().unwrap()
+        .expect("failed to spawn a process").code().unwrap();
+
+        Command::new("rm")
+        .arg(file_base)
+        .status()
+        .expect("failed to spawn a process").code().unwrap();
+
+        code
     }
 }

@@ -796,6 +796,10 @@ impl Opcode {
         }
     }
 
+    pub fn call(func: Operand) -> Self {
+        Opcode::CALLFUNC(func)
+    }
+
     pub fn mov(size: OperandSize, src: Operand, dst: Operand) -> Self {
         match size {
             OperandSize::QWORD => match src {

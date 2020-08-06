@@ -1,11 +1,16 @@
-use crate::assembler::resources::{Group, Opcode, Symbol};
-use indexmap::map::IndexMap;
+use crate::assembler::resources::{Group, Opcode, RelaSymbol, Symbol};
+use indexmap::{
+    map::IndexMap,
+};
 
 type OffsetForRelativeJump = IndexMap<String, (isize, isize)>;
 
-pub fn generate_main(symbols: &mut IndexMap<String, Symbol>) {
-    for (_sym_name, sym) in symbols.iter_mut() {
-        let (mut sym_codes, relative_jump_offset) = gen_symbol_code(sym);
+pub fn generate_main(symbols: &mut IndexMap<String, Symbol>) -> IndexMap<String, Vec<RelaSymbol>>{
+    let mut reloc_syms = IndexMap::new();
+
+    for (sym_name, sym) in symbols.iter_mut() {
+        let (mut sym_codes, relative_jump_offset, relocs_in_sym) = gen_symbol_code(sym);
+        reloc_syms.insert(sym_name.to_string(), relocs_in_sym);
 
         resolve_relative_offset_jump(&mut sym_codes, &relative_jump_offset);
 
@@ -20,29 +25,36 @@ pub fn generate_main(symbols: &mut IndexMap<String, Symbol>) {
 
         sym.codes = sym_codes;
     }
+
+    reloc_syms
 }
 
-fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, OffsetForRelativeJump) {
+fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, OffsetForRelativeJump, Vec<RelaSymbol>) {
     let mut relative_jump_offset = IndexMap::new();
     let mut code_offset = 0;
 
     let mut symbol_codes = Vec::new();
+    let mut relocations = Vec::new();
 
     // ラベルごとに機械語に変換
     for group in sym.groups.iter() {
-        let mut codes_in_group = gen_group_code(&mut code_offset, group, &mut relative_jump_offset);
+        let (mut codes_in_group, mut relocs_in_group) = gen_group_code(&mut code_offset, group, &mut relative_jump_offset);
         symbol_codes.append(&mut codes_in_group);
+
+        // グループ内の再配置情報を合成
+        relocations.append(&mut relocs_in_group)
     }
 
-    (symbol_codes, relative_jump_offset)
+    (symbol_codes, relative_jump_offset, relocations)
 }
 
 fn gen_group_code(
     code_offset: &mut isize,
     group: &Group,
     relative_jump_offset: &mut OffsetForRelativeJump,
-) -> Vec<u8> {
+) -> (Vec<u8>, Vec<RelaSymbol>) {
     let mut codes_in_group = Vec::new();
+    let mut relocs_in_group = Vec::new();
 
     // jump系命令がラベルの前に存在した場合
     if let Some(tup) = relative_jump_offset.get_mut(&group.label) {
@@ -57,8 +69,19 @@ fn gen_group_code(
     }
 
     for inst in group.insts.iter() {
+        // いくつかの命令は再配置シンボルの生成など，
+        // 機械語への変換以外にも操作が必要． 
         let mut inst_codes = match &inst.opcode {
-            Opcode::CALLFUNC(_func) => {
+            Opcode::CALLFUNC(func) => {
+                // 再配置用にシンボルを作る
+                let mut rela64 : RelaSymbol = Default::default();
+                rela64.rela64.set_addend(-4);
+                rela64.name = func.copy_label();
+
+                // opcode 分スキップして，再配置オフセットを設定
+                rela64.rela64.set_offset(*code_offset as u64 + 1);
+                relocs_in_group.push(rela64);
+
                 // 適当なアドレスを生成しておく．
                 vec![0xe8, 0x00, 0x00, 0x00, 0x00]
             }
@@ -100,13 +123,12 @@ fn gen_group_code(
             _ => inst.to_bytes(),
         };
 
-        // jmp用にオフセットを更新
+        // call,jmp用にオフセットを更新
         *code_offset += inst_codes.len() as isize;
-
         codes_in_group.append(&mut inst_codes);
     }
 
-    codes_in_group
+    (codes_in_group, relocs_in_group)
 }
 
 /// 相対ジャンプを解決する
