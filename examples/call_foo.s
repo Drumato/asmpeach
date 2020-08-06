@@ -1,11 +1,21 @@
-	.globl	foo
-	.type	foo, @function
-foo:
+	.globl	bar
+	.type	bar, @function
+bar:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	movq	$30, %rax
 	popq	%rbp
 	ret
+
+	.globl	foo
+	.type	foo, @function
+foo:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	call bar
+	popq	%rbp
+	ret
+
 	.globl	main
 	.type	main, @function
 main:
