@@ -1,4 +1,4 @@
-use crate::assembler::resources::*;
+use crate::assembler::resource::*;
 
 #[allow(dead_code)]
 const IDIVRM64: [Instruction; 1] = [

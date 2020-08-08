@@ -1,4 +1,4 @@
-use crate::assembler::resources::*;
+use crate::assembler::resource::*;
 
 #[allow(dead_code)]
 const NEGRM64_CASES: [Instruction; 1] = [

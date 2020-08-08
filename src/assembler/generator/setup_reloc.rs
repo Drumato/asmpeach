@@ -1,4 +1,4 @@
-use crate::assembler::resources::{RelaSymbol, Symbol};
+use crate::assembler::resource::{RelaSymbol, Symbol};
 use indexmap::IndexMap;
 
 /// 再配置情報の更新

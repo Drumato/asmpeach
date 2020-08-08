@@ -1,4 +1,4 @@
-use crate::assembler::resources::*;
+use crate::assembler::resource::*;
 use indexmap::map::IndexMap;
 use std::str::SplitAsciiWhitespace;
 

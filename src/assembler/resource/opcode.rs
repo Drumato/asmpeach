@@ -1,4 +1,4 @@
-use crate::assembler::resources::*;
+use crate::assembler::resource::*;
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Opcode {

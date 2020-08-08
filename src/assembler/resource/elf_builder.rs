@@ -3,7 +3,7 @@ use elf_utilities::{
 };
 use std::io::{BufWriter, Write};
 use std::os::unix::fs::OpenOptionsExt;
-use crate::assembler::resources::{RelaSymbol, Symbol};
+use crate::assembler::resource::{RelaSymbol, Symbol};
 use indexmap::map::IndexMap;
 
 pub struct ELFBuilder {

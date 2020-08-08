@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod format_tests {
-    use crate::assembler::resources::*;
+    use crate::assembler::resource::*;
 
     #[test]
     fn display_rex_prefix_test() {
@@ -29,7 +29,7 @@ mod format_tests {
 
 #[cfg(test)]
 mod to_byte_tests {
-    use crate::assembler::resources::*;
+    use crate::assembler::resource::*;
 
     #[test]
     fn to_byte_test() {

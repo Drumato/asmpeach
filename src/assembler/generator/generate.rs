@@ -1,4 +1,4 @@
-use crate::assembler::resources::{Group, Opcode, RelaSymbol, Symbol};
+use crate::assembler::resource::{Group, Opcode, RelaSymbol, Symbol};
 use indexmap::{
     map::IndexMap,
 };

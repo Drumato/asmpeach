@@ -1,4 +1,4 @@
-use crate::assembler::resources::Instruction;
+use crate::assembler::resource::Instruction;
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub struct Group {

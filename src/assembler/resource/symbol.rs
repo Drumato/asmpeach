@@ -1,4 +1,4 @@
-use crate::assembler::resources::Group;
+use crate::assembler::resource::Group;
 use elf_utilities::symbol;
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]

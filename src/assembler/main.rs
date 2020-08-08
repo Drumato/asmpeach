@@ -1,4 +1,4 @@
-use crate::assembler::{generator, parser, resources::{ELFBuilder, Syntax}};
+use crate::assembler::{generator, parser, resource::{ELFBuilder, Syntax}};
 use std::fs;
 
 type ELFOrError = Result<ELFBuilder, Box<dyn std::error::Error>>;
