@@ -41,7 +41,7 @@ impl Context {
 
         // シンボル名の場合
         if line.trim_end().ends_with(':') {
-            let sym_name = Self::remove_pat_and_newline(line, ":");
+            let sym_name = Self::remove_double_quote(&Self::remove_pat_and_newline(line, ":"));
             self.state = State::InSymbol(sym_name.clone());
             self.syms.entry(sym_name).or_insert_with(Symbol::default);
             return;
@@ -64,7 +64,7 @@ impl Context {
 
     /// `.global main` みたいなやつ
     fn parse_global_directive(&mut self, iterator: &mut SplitAsciiWhitespace) {
-        let sym_name = iterator.next().unwrap().to_string();
+        let sym_name = Self::remove_double_quote(iterator.next().unwrap());
 
         self.syms
             .entry(sym_name)
@@ -75,7 +75,7 @@ impl Context {
 
     /// `.type main, @function` みたいなやつ
     fn parse_symbol_type_directive(&mut self, iterator: &mut SplitAsciiWhitespace) {
-        let sym_name = Self::remove_pat_and_newline(iterator.next().unwrap(), ",");
+        let sym_name = Self::remove_double_quote(&Self::remove_pat_and_newline(iterator.next().unwrap(), ","));
         let sym_type = iterator.next().unwrap();
         assert_eq!(sym_type, "@function");
 
@@ -89,7 +89,7 @@ impl Context {
     fn in_symbol(&mut self, line: &str, sym_name: &str) {
         // シンボル名の場合
         if line.trim_end().ends_with(':') {
-            let another_sym = Self::remove_pat_and_newline(line, ":");
+            let another_sym = Self::remove_double_quote(&Self::remove_pat_and_newline(line, ":"));
             self.state = State::InSymbol(another_sym.clone());
             self.syms.entry(another_sym).or_insert_with(Symbol::default);
             return;
@@ -171,6 +171,10 @@ impl Context {
         assert!(iter.next().is_none());
     }
 
+    fn remove_double_quote(op: &str) -> String {
+        op.trim_start_matches('"').trim_end_matches('"').to_string()
+    }
+
     fn parse_operand(operand: &str) -> Operand {
         let stripped = Self::remove_pat_and_newline(operand, ",");
         // レジスタの場合
@@ -193,7 +197,7 @@ impl Context {
             },
         }
 
-        Operand::LABEL(stripped.to_string())
+        Operand::LABEL(Self::remove_double_quote(&stripped))
     }
 
     fn is_directive_start(&self, directive: &str) -> bool {
@@ -249,6 +253,13 @@ mod parse_tests {
         assert!(!ctxt.syms.is_empty());
         assert_eq!(State::InSymbol("main".to_string()), ctxt.state);
         assert!(ctxt.syms.get("main").is_some());
+
+        ctxt.toplevel("\"aarch64::main\":    \n");
+
+        assert!(!ctxt.syms.is_empty());
+        assert_eq!(State::InSymbol("aarch64::main".to_string()), ctxt.state);
+        assert!(ctxt.syms.get("aarch64::main").is_some());
+        
     }
 
     #[test]
