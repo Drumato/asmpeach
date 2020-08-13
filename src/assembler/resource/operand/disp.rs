@@ -1,7 +1,7 @@
 //! Type definitions for displacement field in each instructions.
 
-use std::fmt;
 use fmt::Formatter;
+use std::fmt;
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum Displacement {

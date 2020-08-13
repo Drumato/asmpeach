@@ -21,6 +21,9 @@ mod format_tests {
             scale: 4,
         };
 
-        assert_eq!("SIB(base 0b0: index 0b10: 4x scale)", format!("{:?}", byte).as_str())
+        assert_eq!(
+            "SIB(base 0b0: index 0b10: 4x scale)",
+            format!("{:?}", byte).as_str()
+        )
     }
 }

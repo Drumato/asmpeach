@@ -5,13 +5,13 @@ const POPR64_CASES: [Instruction; 2] = [
     Instruction {
         opcode: Opcode::POPR64 {
             r64: GeneralPurposeRegister::RAX,
-        }
+        },
     },
     Instruction {
         opcode: Opcode::POPR64 {
             r64: GeneralPurposeRegister::R15,
-        }
-    }
+        },
+    },
 ];
 
 #[cfg(test)]

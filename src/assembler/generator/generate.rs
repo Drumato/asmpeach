@@ -1,11 +1,9 @@
 use crate::assembler::resource::{Group, Opcode, RelaSymbol, Symbol};
-use indexmap::{
-    map::IndexMap,
-};
+use indexmap::map::IndexMap;
 
 type OffsetForRelativeJump = IndexMap<String, (isize, isize)>;
 
-pub fn generate_main(symbols: &mut IndexMap<String, Symbol>) -> IndexMap<String, Vec<RelaSymbol>>{
+pub fn generate_main(symbols: &mut IndexMap<String, Symbol>) -> IndexMap<String, Vec<RelaSymbol>> {
     let mut reloc_syms = IndexMap::new();
 
     for (sym_name, sym) in symbols.iter_mut() {
@@ -38,7 +36,8 @@ fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, OffsetForRelativeJump, Vec<RelaSym
 
     // ラベルごとに機械語に変換
     for group in sym.groups.iter() {
-        let (mut codes_in_group, mut relocs_in_group) = gen_group_code(&mut code_offset, group, &mut relative_jump_offset);
+        let (mut codes_in_group, mut relocs_in_group) =
+            gen_group_code(&mut code_offset, group, &mut relative_jump_offset);
         symbol_codes.append(&mut codes_in_group);
 
         // グループ内の再配置情報を合成
@@ -70,11 +69,11 @@ fn gen_group_code(
 
     for inst in group.insts.iter() {
         // いくつかの命令は再配置シンボルの生成など，
-        // 機械語への変換以外にも操作が必要． 
+        // 機械語への変換以外にも操作が必要．
         let mut inst_codes = match &inst.opcode {
             Opcode::CALLFUNC(func) => {
                 // 再配置用にシンボルを作る
-                let mut rela64 : RelaSymbol = Default::default();
+                let mut rela64: RelaSymbol = Default::default();
                 rela64.rela64.set_addend(-4);
                 rela64.name = func.copy_label();
 
@@ -132,7 +131,10 @@ fn gen_group_code(
 }
 
 /// 相対ジャンプを解決する
-fn resolve_relative_offset_jump(sym_codes: &mut Vec<u8>, relative_jump_offset: &OffsetForRelativeJump) {
+fn resolve_relative_offset_jump(
+    sym_codes: &mut Vec<u8>,
+    relative_jump_offset: &OffsetForRelativeJump,
+) {
     for (_name, (dst, offset)) in relative_jump_offset.iter() {
         for (idx, byte) in (*offset as u32).to_le_bytes().iter().enumerate() {
             sym_codes[idx + *dst as usize] = *byte;

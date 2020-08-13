@@ -75,7 +75,8 @@ impl Context {
 
     /// `.type main, @function` みたいなやつ
     fn parse_symbol_type_directive(&mut self, iterator: &mut SplitAsciiWhitespace) {
-        let sym_name = Self::remove_double_quote(&Self::remove_pat_and_newline(iterator.next().unwrap(), ","));
+        let sym_name =
+            Self::remove_double_quote(&Self::remove_pat_and_newline(iterator.next().unwrap(), ","));
         let sym_type = iterator.next().unwrap();
         assert_eq!(sym_type, "@function");
 
@@ -104,7 +105,7 @@ impl Context {
         let opcode = iterator.next().unwrap();
 
         // .global等のディレクティブを見つけたら
-        if self.is_directive_start(opcode){
+        if self.is_directive_start(opcode) {
             self.state = State::TopLevel;
             self.toplevel(line);
             return;
@@ -127,9 +128,15 @@ impl Context {
         }
     }
 
-    fn parse_no_operand_instruction(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str, opcode: &str) {
+    fn parse_no_operand_instruction(
+        &mut self,
+        iter: &mut SplitAsciiWhitespace,
+        sym_name: &str,
+        opcode: &str,
+    ) {
         let opcode = match opcode {
             "ret" => Opcode::RET,
+            "endbr64" => Opcode::ENDBR64,
             _ => unreachable!(),
         };
 
@@ -137,7 +144,12 @@ impl Context {
         assert!(iter.next().is_none());
     }
 
-    fn parse_unary_instruction(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str, opcode: &str) {
+    fn parse_unary_instruction(
+        &mut self,
+        iter: &mut SplitAsciiWhitespace,
+        sym_name: &str,
+        opcode: &str,
+    ) {
         let operand = iter.next();
         assert!(operand.is_some());
 
@@ -153,7 +165,12 @@ impl Context {
         assert!(iter.next().is_none());
     }
 
-    fn parse_binary_instruction(&mut self, iter: &mut SplitAsciiWhitespace, sym_name: &str, opcode: &str) {
+    fn parse_binary_instruction(
+        &mut self,
+        iter: &mut SplitAsciiWhitespace,
+        sym_name: &str,
+        opcode: &str,
+    ) {
         let src = iter.next();
         assert!(src.is_some());
         let src_op = Self::parse_operand(src.unwrap());
@@ -163,6 +180,9 @@ impl Context {
         let dst_op = Self::parse_operand(dst.unwrap());
 
         let opcode = match opcode {
+            "addl" => Opcode::add(OperandSize::DWORD, src_op.to_32bit(), dst_op.to_32bit()),
+            "addq" => Opcode::add(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
+            "movl" => Opcode::mov(OperandSize::DWORD, src_op.to_32bit(), dst_op.to_32bit()),
             "movq" => Opcode::mov(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
             _ => unreachable!(),
         };
@@ -177,6 +197,7 @@ impl Context {
 
     fn parse_operand(operand: &str) -> Operand {
         let stripped = Self::remove_pat_and_newline(operand, ",");
+
         // レジスタの場合
         if stripped.starts_with('%') {
             return Operand::GENERALREGISTER(GeneralPurposeRegister::from_at_string(&stripped));
@@ -197,15 +218,56 @@ impl Context {
             },
         }
 
-        Operand::LABEL(Self::remove_double_quote(&stripped))
+        // '(' がない => label
+        if !stripped.contains("(") {
+            return Operand::LABEL(Self::remove_double_quote(&stripped));
+        }
+
+        // メモリオペランド
+        let mut splitted = stripped.split('(');
+        let disp_str = splitted.next();
+
+        let displacement = match disp_str.unwrap() {
+            // 単純なでリファレンス
+            "" => None,
+            disp => match disp.parse::<i8>() {
+                Ok(v) => Some(Displacement::DISP8(v)),
+                Err(_e) => match stripped.parse::<i32>() {
+                    Ok(v) => Some(Displacement::DISP32(v)),
+                    // offset無し
+                    Err(_e) => None,
+                },
+            },
+        };
+
+        let base_reg = splitted.next().unwrap();
+        let mut memory_operand_str = base_reg.trim_end_matches(')').split(',');
+        let base_reg = GeneralPurposeRegister::from_at_string(memory_operand_str.next().unwrap());
+
+        let index_reg = match memory_operand_str.next() {
+            Some(ireg_str) => Some(GeneralPurposeRegister::from_at_string(
+                ireg_str.trim_start(),
+            )),
+            None => None,
+        };
+        let scale = match memory_operand_str.next() {
+            Some(scale_str) => Some(scale_str.trim_start().parse::<u8>().unwrap()),
+            None => None,
+        };
+
+        Operand::ADDRESSING {
+            index_reg,
+            base_reg,
+            displacement,
+            scale,
+        }
     }
 
     fn is_directive_start(&self, directive: &str) -> bool {
-        match directive{
+        match directive {
             ".globl" | ".global" | ".type" => true,
             _ => false,
         }
-
     }
 
     fn push_inst_cur_sym(&mut self, sym_name: &str, inst: Instruction) {
@@ -259,7 +321,6 @@ mod parse_tests {
         assert!(!ctxt.syms.is_empty());
         assert_eq!(State::InSymbol("aarch64::main".to_string()), ctxt.state);
         assert!(ctxt.syms.get("aarch64::main").is_some());
-        
     }
 
     #[test]
@@ -328,6 +389,20 @@ mod parse_tests {
             },
             ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
         );
+
+        ctxt.in_symbol("movq $3, -24(%rbp)", "main");
+        assert_eq!(
+            Opcode::MOVRM64IMM32 {
+                imm: Immediate::I32(3),
+                rm64: Operand::ADDRESSING{
+                    base_reg: GeneralPurposeRegister::RBP,
+                    index_reg: None,
+                    displacement: Some(Displacement::DISP8(-24)),
+                    scale: None,
+                },
+            },
+            ctxt.syms.get("main").unwrap().groups[0].insts[1].opcode
+        );
     }
 
     #[test]
@@ -357,6 +432,42 @@ mod parse_tests {
         assert_eq!(
             Operand::Immediate(Immediate::I8(30)),
             Context::parse_operand("$30")
+        );
+        assert_eq!(
+            Operand::ADDRESSING {
+                base_reg: GeneralPurposeRegister::RAX,
+                index_reg: None,
+                displacement: None,
+                scale: None,
+            },
+            Context::parse_operand("(%rax)"),
+        );
+        assert_eq!(
+            Operand::ADDRESSING {
+                base_reg: GeneralPurposeRegister::RAX,
+                index_reg: None,
+                displacement: Some(Displacement::DISP8(-8)),
+                scale: None,
+            },
+            Context::parse_operand("-8(%rax)"),
+        );
+        assert_eq!(
+            Operand::ADDRESSING {
+                base_reg: GeneralPurposeRegister::RAX,
+                index_reg: Some(GeneralPurposeRegister::RBX),
+                displacement: Some(Displacement::DISP8(-8)),
+                scale: None,
+            },
+            Context::parse_operand("-8(%rax, %rbx)"),
+        );
+        assert_eq!(
+            Operand::ADDRESSING {
+                base_reg: GeneralPurposeRegister::RAX,
+                index_reg: Some(GeneralPurposeRegister::RBX),
+                displacement: Some(Displacement::DISP8(16)),
+                scale: Some(4),
+            },
+            Context::parse_operand("16(%rax, %rbx, 4)"),
         );
     }
 

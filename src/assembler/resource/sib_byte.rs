@@ -1,5 +1,5 @@
-use std::fmt;
 use fmt::Formatter;
+use std::fmt;
 
 /// for using relative-addressing
 #[derive(Eq, Ord, PartialOrd, PartialEq, Clone, Copy)]
@@ -27,7 +27,9 @@ impl SIBByte {
     }
 
     pub fn to_byte(&self) -> u8 {
-        Self::base_field(self.base_reg) | Self::index_field(self.index_reg) | Self::scale_field(self.scale)
+        Self::base_field(self.base_reg)
+            | Self::index_field(self.index_reg)
+            | Self::scale_field(self.scale)
     }
 }
 
@@ -39,6 +41,10 @@ impl fmt::Display for SIBByte {
 
 impl fmt::Debug for SIBByte {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "SIB(base 0b{:b}: index 0b{:b}: {}x scale)", self.base_reg, self.index_reg, self.scale)
+        write!(
+            f,
+            "SIB(base 0b{:b}: index 0b{:b}: {}x scale)",
+            self.base_reg, self.index_reg, self.scale
+        )
     }
 }

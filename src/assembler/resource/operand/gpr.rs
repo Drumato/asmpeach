@@ -1,5 +1,5 @@
-use std::fmt;
 use fmt::Formatter;
+use std::fmt;
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum GeneralPurposeRegister {
@@ -12,6 +12,26 @@ pub enum GeneralPurposeRegister {
     BL,
     CL,
     DL,
+
+    // 32bit general-purpose registers
+
+    /// Accumulator Register
+    EAX,
+
+    /// (Stack) Base Pointer Register
+    EBP,
+    /// Stack Pointer Register
+    ESP,
+    /// Destination Index Register
+    EDI,
+    /// Source Index Register
+    ESI,
+    /// Data Register
+    EDX,
+    /// Counter Register
+    ECX,
+    /// Base Register
+    EBX,
 
     // 64bit general-purpose registers
     /// Accumulator Register
@@ -47,19 +67,44 @@ impl GeneralPurposeRegister {
     /// register code
     pub fn number(&self) -> u8 {
         match self {
-            GeneralPurposeRegister::AL | GeneralPurposeRegister::RAX | GeneralPurposeRegister::R8 => 0,
-            GeneralPurposeRegister::CL | GeneralPurposeRegister::RCX | GeneralPurposeRegister::R9 => 1,
-            GeneralPurposeRegister::DL | GeneralPurposeRegister::RDX | GeneralPurposeRegister::R10 => 2,
-            GeneralPurposeRegister::BL | GeneralPurposeRegister::RBX | GeneralPurposeRegister::R11 => 3,
-            GeneralPurposeRegister::AH | GeneralPurposeRegister::RSP | GeneralPurposeRegister::R12 => 4,
-            GeneralPurposeRegister::CH | GeneralPurposeRegister::RBP | GeneralPurposeRegister::R13 => 5,
-            GeneralPurposeRegister::DH | GeneralPurposeRegister::RSI | GeneralPurposeRegister::R14 => 6,
-            GeneralPurposeRegister::BH | GeneralPurposeRegister::RDI | GeneralPurposeRegister::R15 => 7,
+            GeneralPurposeRegister::AL
+            | GeneralPurposeRegister::EAX
+            | GeneralPurposeRegister::RAX
+            | GeneralPurposeRegister::R8 => 0,
+            GeneralPurposeRegister::CL
+            | GeneralPurposeRegister::ECX
+            | GeneralPurposeRegister::RCX
+            | GeneralPurposeRegister::R9 => 1,
+            GeneralPurposeRegister::DL
+            | GeneralPurposeRegister::EDX
+            | GeneralPurposeRegister::RDX
+            | GeneralPurposeRegister::R10 => 2,
+            GeneralPurposeRegister::BL
+            | GeneralPurposeRegister::EBX
+            | GeneralPurposeRegister::RBX
+            | GeneralPurposeRegister::R11 => 3,
+            GeneralPurposeRegister::AH
+            | GeneralPurposeRegister::ESP
+            | GeneralPurposeRegister::RSP
+            | GeneralPurposeRegister::R12 => 4,
+            GeneralPurposeRegister::CH
+            | GeneralPurposeRegister::EBP
+            | GeneralPurposeRegister::RBP
+            | GeneralPurposeRegister::R13 => 5,
+            GeneralPurposeRegister::DH
+            | GeneralPurposeRegister::ESI
+            | GeneralPurposeRegister::RSI
+            | GeneralPurposeRegister::R14 => 6,
+            GeneralPurposeRegister::BH
+            | GeneralPurposeRegister::EDI
+            | GeneralPurposeRegister::RDI
+            | GeneralPurposeRegister::R15 => 7,
         }
     }
 
     pub fn size(&self) -> RegisterSize {
         match self {
+            // 8bit
             GeneralPurposeRegister::AL
             | GeneralPurposeRegister::CL
             | GeneralPurposeRegister::DL
@@ -68,6 +113,16 @@ impl GeneralPurposeRegister {
             | GeneralPurposeRegister::CH
             | GeneralPurposeRegister::DH
             | GeneralPurposeRegister::BH => RegisterSize::S8,
+
+            // 32bit
+            GeneralPurposeRegister::EAX
+            | GeneralPurposeRegister::ECX
+            | GeneralPurposeRegister::EDX
+            | GeneralPurposeRegister::EBX
+            | GeneralPurposeRegister::ESP
+            | GeneralPurposeRegister::EBP
+            | GeneralPurposeRegister::ESI
+            | GeneralPurposeRegister::EDI => RegisterSize::S32,
             _ => RegisterSize::S64,
         }
     }
@@ -77,7 +132,14 @@ impl GeneralPurposeRegister {
     /// REX prefixに用いる
     pub fn is_expanded(&self) -> bool {
         match self {
-            Self::R8 | Self::R9 | Self::R10 | Self::R11 | Self::R12 | Self::R13 | Self::R14 | Self::R15 => true,
+            Self::R8
+            | Self::R9
+            | Self::R10
+            | Self::R11
+            | Self::R12
+            | Self::R13
+            | Self::R14
+            | Self::R15 => true,
             _ => false,
         }
     }
@@ -94,6 +156,15 @@ impl GeneralPurposeRegister {
             GeneralPurposeRegister::CL => "cl",
             GeneralPurposeRegister::DL => "dl",
 
+                        // 32bit general-purpose registers
+                        Self::EAX => "eax",
+                        Self::ECX => "ecx",
+                        Self::EDX => "edx",
+                        Self::EBX => "ebx",
+                        Self::ESP => "esp",
+                        Self::EBP => "ebp",
+                        Self::ESI => "esi",
+                        Self::EDI => "edi",
 
             // 64bit general-purpose registers
             Self::RAX => "rax",
@@ -131,6 +202,17 @@ impl GeneralPurposeRegister {
 
     pub fn from_at_string(s: &str) -> Self {
         match s {
+            // 32bit
+            "%eax" => GeneralPurposeRegister::EAX,
+            "%ecx" => GeneralPurposeRegister::ECX,
+            "%edx" => GeneralPurposeRegister::EDX,
+            "%ebx" => GeneralPurposeRegister::EBX,
+            "%esp" => GeneralPurposeRegister::ESP,
+            "%ebp" => GeneralPurposeRegister::EBP,
+            "%esi" => GeneralPurposeRegister::ESI,
+            "%edi" => GeneralPurposeRegister::EDI,
+
+            // 64bit
             "%rax" => GeneralPurposeRegister::RAX,
             "%rcx" => GeneralPurposeRegister::RCX,
             "%rdx" => GeneralPurposeRegister::RDX,
@@ -147,7 +229,20 @@ impl GeneralPurposeRegister {
             "%13" => GeneralPurposeRegister::R13,
             "%14" => GeneralPurposeRegister::R14,
             "%15" => GeneralPurposeRegister::R15,
-            _ => unimplemented!()
+            _ => panic!("{} is not a register", s),
+        }
+    }
+
+    pub fn to_32bit(&self) -> Self {
+        match self {
+            // 8bit general-purpose registers
+            GeneralPurposeRegister::AH | GeneralPurposeRegister::AL => Self::EAX,
+            GeneralPurposeRegister::BH | GeneralPurposeRegister::BL => Self::EBX,
+            GeneralPurposeRegister::CH | GeneralPurposeRegister::CL => Self::ECX,
+            GeneralPurposeRegister::DH | GeneralPurposeRegister::DL => Self::EDX,
+
+            // 64bit general-purpose registers
+            _ => *self,
         }
     }
 
@@ -158,7 +253,6 @@ impl GeneralPurposeRegister {
             GeneralPurposeRegister::BH | GeneralPurposeRegister::BL => Self::RBX,
             GeneralPurposeRegister::CH | GeneralPurposeRegister::CL => Self::RCX,
             GeneralPurposeRegister::DH | GeneralPurposeRegister::DL => Self::RDX,
-
 
             // 64bit general-purpose registers
             _ => *self,

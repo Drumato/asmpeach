@@ -1,44 +1,38 @@
 use crate::assembler::resource::*;
 
 #[allow(dead_code)]
-const SUBRM64R64_CASES: [Instruction; 1] = [
-    Instruction {
-        opcode: Opcode::SUBRM64R64 {
-            rm64: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: None,
-                scale: None,
-                displacement: None,
-            },
-            r64: GeneralPurposeRegister::RBX,
-        }
-    }
-];
-
-#[allow(dead_code)]
-const SUBR64RM64_CASES: [Instruction; 1] = [
-    Instruction {
-        opcode: Opcode::SUBR64RM64 {
-            r64: GeneralPurposeRegister::RBX,
-            rm64: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: None,
-                scale: None,
-                displacement: None,
-            },
-        }
+const SUBRM64R64_CASES: [Instruction; 1] = [Instruction {
+    opcode: Opcode::SUBRM64R64 {
+        rm64: Operand::ADDRESSING {
+            base_reg: GeneralPurposeRegister::RAX,
+            index_reg: None,
+            scale: None,
+            displacement: None,
+        },
+        r64: GeneralPurposeRegister::RBX,
     },
-];
+}];
 
 #[allow(dead_code)]
-const SUBRM64IMM32_CASES: [Instruction; 1] = [
-    Instruction {
-        opcode: Opcode::SUBRM64IMM32 {
-            rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
-            imm: Immediate::I32(60),
-        }
-    }];
+const SUBR64RM64_CASES: [Instruction; 1] = [Instruction {
+    opcode: Opcode::SUBR64RM64 {
+        r64: GeneralPurposeRegister::RBX,
+        rm64: Operand::ADDRESSING {
+            base_reg: GeneralPurposeRegister::RAX,
+            index_reg: None,
+            scale: None,
+            displacement: None,
+        },
+    },
+}];
 
+#[allow(dead_code)]
+const SUBRM64IMM32_CASES: [Instruction; 1] = [Instruction {
+    opcode: Opcode::SUBRM64IMM32 {
+        rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
+        imm: Immediate::I32(60),
+    },
+}];
 
 #[cfg(test)]
 mod to_intel_tests {
@@ -123,6 +117,9 @@ mod to_bytes_tests {
         // sub rax, 60
         let inst = &SUBRM64IMM32_CASES[0];
 
-        assert_eq!(inst.to_bytes(), vec![0x48, 0x81, 0xe8, 0x3c, 0x00, 0x00, 0x00]);
+        assert_eq!(
+            inst.to_bytes(),
+            vec![0x48, 0x81, 0xe8, 0x3c, 0x00, 0x00, 0x00]
+        );
     }
 }

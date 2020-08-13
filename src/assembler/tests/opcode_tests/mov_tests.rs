@@ -18,7 +18,7 @@ const MOVRM8R8_CASES: [Instruction; 2] = [
             },
             r8: GeneralPurposeRegister::BH,
         },
-    }
+    },
 ];
 
 #[allow(dead_code)]
@@ -27,7 +27,7 @@ const MOVRM64R64_CASES: [Instruction; 2] = [
         opcode: Opcode::MOVRM64R64 {
             rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
             r64: GeneralPurposeRegister::RCX,
-        }
+        },
     },
     Instruction {
         opcode: Opcode::MOVRM64R64 {
@@ -38,23 +38,22 @@ const MOVRM64R64_CASES: [Instruction; 2] = [
                 scale: Some(0x4),
             },
             r64: GeneralPurposeRegister::RCX,
-        }
+        },
     },
 ];
 
 #[allow(dead_code)]
-const MOVR64RM64_CASES: [Instruction; 1] = [
-    Instruction {
-        opcode: Opcode::MOVR64RM64 {
-            r64: GeneralPurposeRegister::RAX,
-            rm64: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: None,
-                displacement: None,
-                scale: None,
-            },
-        }
-    }];
+const MOVR64RM64_CASES: [Instruction; 1] = [Instruction {
+    opcode: Opcode::MOVR64RM64 {
+        r64: GeneralPurposeRegister::RAX,
+        rm64: Operand::ADDRESSING {
+            base_reg: GeneralPurposeRegister::RAX,
+            index_reg: None,
+            displacement: None,
+            scale: None,
+        },
+    },
+}];
 
 #[allow(dead_code)]
 const MOVRM64IMM32_CASES: [Instruction; 1] = [Instruction {
@@ -66,7 +65,7 @@ const MOVRM64IMM32_CASES: [Instruction; 1] = [Instruction {
             scale: None,
         },
         imm: Immediate::I32(60),
-    }
+    },
 }];
 
 #[cfg(test)]
@@ -203,6 +202,9 @@ mod to_bytes_tests {
     fn movrm64imm32_test() {
         // mov QWORD PTR [rax], 60
         let inst = &MOVRM64IMM32_CASES[0];
-        assert_eq!(inst.to_bytes(), vec![0x48, 0xc7, 0x00, 0x3c, 0x00, 0x00, 0x00])
+        assert_eq!(
+            inst.to_bytes(),
+            vec![0x48, 0xc7, 0x00, 0x3c, 0x00, 0x00, 0x00]
+        )
     }
 }

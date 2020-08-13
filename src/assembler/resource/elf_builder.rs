@@ -1,10 +1,8 @@
-use elf_utilities::{
-    file::ELF64,
-};
+use crate::assembler::resource::{RelaSymbol, Symbol};
+use elf_utilities::file::ELF64;
+use indexmap::map::IndexMap;
 use std::io::{BufWriter, Write};
 use std::os::unix::fs::OpenOptionsExt;
-use crate::assembler::resource::{RelaSymbol, Symbol};
-use indexmap::map::IndexMap;
 
 pub struct ELFBuilder {
     output_filepath: String,
@@ -53,8 +51,7 @@ impl ELFBuilder {
         }
 
         // .textセクションの生成
-        let text_shdr =
-            self.init_text_section_header(all_symbol_codes.len());
+        let text_shdr = self.init_text_section_header(all_symbol_codes.len());
         let mut text_section =
             elf_utilities::section::Section64::new(".text".to_string(), text_shdr);
         text_section.bytes = Some(all_symbol_codes);
@@ -95,10 +92,10 @@ impl ELFBuilder {
             symbol_offset += symbol_code_length as elf_utilities::Elf64Addr;
         }
 
-        let symbol_table_size = elf_symbols.len() * elf_utilities::symbol::Symbol64::size() as usize;
+        let symbol_table_size =
+            elf_symbols.len() * elf_utilities::symbol::Symbol64::size() as usize;
         // セクションの追加
-        let symtab_section_header =
-            self.init_symbol_table_section_header(symbol_table_size as u64);
+        let symtab_section_header = self.init_symbol_table_section_header(symbol_table_size as u64);
         let mut symtab_section =
             elf_utilities::section::Section64::new(".symtab".to_string(), symtab_section_header);
         symtab_section.symbols = Some(elf_symbols);
@@ -176,10 +173,7 @@ impl ELFBuilder {
         self.file.condition();
     }
 
-    fn init_text_section_header(
-        &self,
-        length: usize,
-    ) -> elf_utilities::section::Shdr64 {
+    fn init_text_section_header(&self, length: usize) -> elf_utilities::section::Shdr64 {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
         shdr.set_type(elf_utilities::section::TYPE::PROGBITS);
@@ -222,7 +216,6 @@ impl ELFBuilder {
         shdr
     }
 
-
     fn init_relatext_header(
         &self,
         length: elf_utilities::Elf64Xword,
@@ -243,7 +236,6 @@ impl ELFBuilder {
 
         shdr
     }
-
 
     fn init_nodata_header(&self) -> elf_utilities::section::Shdr64 {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();

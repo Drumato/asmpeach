@@ -1,18 +1,16 @@
-use crate::assembler::{generator, parser, resource::{ELFBuilder, Syntax}};
+use crate::assembler::{
+    generator, parser,
+    resource::{ELFBuilder, Syntax},
+};
 use std::fs;
 
 type ELFOrError = Result<ELFBuilder, Box<dyn std::error::Error>>;
 
 /// translate assembly file into object file
-pub fn assemble_file(
-    input_file: &str,
-    output_file: &str,
-    syntax: Syntax,
-) -> ELFOrError {
+pub fn assemble_file(input_file: &str, output_file: &str, syntax: Syntax) -> ELFOrError {
     let source = fs::read_to_string(input_file)?;
     assemble(source, output_file, syntax)
 }
-
 
 /// translate assembly code into object file.
 ///
@@ -33,11 +31,7 @@ pub fn assemble_file(
 /// let elf_builder = assemble_code(s, "obj.o", Syntax::ATANDT).unwrap();
 /// elf_builder.generate_elf_file(0o644);
 /// ```
-pub fn assemble_code(
-    assembly_code: String,
-    output_file: &str,
-    syntax: Syntax,
-) -> ELFOrError {
+pub fn assemble_code(assembly_code: String, output_file: &str, syntax: Syntax) -> ELFOrError {
     assemble(assembly_code, output_file, syntax)
 }
 

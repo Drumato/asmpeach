@@ -6,7 +6,7 @@ const ADDRM64R64_CASES: [Instruction; 2] = [
         opcode: Opcode::ADDRM64R64 {
             rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
             r64: GeneralPurposeRegister::RBX,
-        }
+        },
     },
     Instruction {
         opcode: Opcode::ADDRM64R64 {
@@ -17,20 +17,17 @@ const ADDRM64R64_CASES: [Instruction; 2] = [
                 displacement: None,
             },
             r64: GeneralPurposeRegister::RBX,
-        }
-    }
-];
-
-#[allow(dead_code)]
-const ADDR64RM64_CASES: [Instruction; 1] = [
-    Instruction {
-        opcode: Opcode::ADDR64RM64 {
-            r64: GeneralPurposeRegister::RAX,
-            rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RBX),
-        }
+        },
     },
 ];
 
+#[allow(dead_code)]
+const ADDR64RM64_CASES: [Instruction; 1] = [Instruction {
+    opcode: Opcode::ADDR64RM64 {
+        r64: GeneralPurposeRegister::RAX,
+        rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RBX),
+    },
+}];
 
 #[cfg(test)]
 mod to_intel_tests {

@@ -1,9 +1,9 @@
 mod main;
 
-pub use main::{assemble_file, assemble_code};
+pub use main::{assemble_code, assemble_file};
 
-mod parser;
 mod generator;
+mod parser;
 mod resource;
 mod tests;
 pub use resource::{ELFBuilder, Syntax};

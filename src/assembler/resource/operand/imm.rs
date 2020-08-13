@@ -1,5 +1,5 @@
-use std::fmt;
 use fmt::Formatter;
+use std::fmt;
 
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum Immediate {

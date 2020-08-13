@@ -17,5 +17,4 @@ pub enum Encoding {
     I,
     /// Ope1 -> ModRM:r/m
     M,
-
 }

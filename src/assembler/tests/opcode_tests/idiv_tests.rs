@@ -1,18 +1,16 @@
 use crate::assembler::resource::*;
 
 #[allow(dead_code)]
-const IDIVRM64: [Instruction; 1] = [
-    Instruction {
-        opcode: Opcode::IDIVRM64 {
-            rm64: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: None,
-                displacement: None,
-                scale: None,
-            }
-        }
-    }
-];
+const IDIVRM64: [Instruction; 1] = [Instruction {
+    opcode: Opcode::IDIVRM64 {
+        rm64: Operand::ADDRESSING {
+            base_reg: GeneralPurposeRegister::RAX,
+            index_reg: None,
+            displacement: None,
+            scale: None,
+        },
+    },
+}];
 
 #[cfg(test)]
 mod to_intel_tests {

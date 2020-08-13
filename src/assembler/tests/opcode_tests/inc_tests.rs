@@ -1,13 +1,11 @@
 use crate::assembler::resource::*;
 
 #[allow(dead_code)]
-const INCRM64_CASES: [Instruction; 1] = [
-    Instruction {
-        opcode: Opcode::INCRM64 {
-            rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
-        }
-    }
-];
+const INCRM64_CASES: [Instruction; 1] = [Instruction {
+    opcode: Opcode::INCRM64 {
+        rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
+    },
+}];
 
 #[cfg(test)]
 mod to_intel_tests {

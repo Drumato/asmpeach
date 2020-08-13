@@ -5,6 +5,15 @@ x86_64 assembler
 
 ## Get Started
 
+### How to use as an assembler command
+
+```
+cargo build
+./target/debug/x64_asm <assembly-file in AT&T syntax>
+```
+
+### How to use as a Rust crate
+
 See **[documentation](https://docs.rs/x64_asm)**
 
 ```rust

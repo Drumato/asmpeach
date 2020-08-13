@@ -1,25 +1,23 @@
 use crate::assembler::resource::*;
 
 #[allow(dead_code)]
-const PUSHIMM32_CASES: [Instruction; 1] = [
-    Instruction {
-        opcode: Opcode::PUSHIMM32 {
-            imm: Immediate::I32(60),
-        }
+const PUSHIMM32_CASES: [Instruction; 1] = [Instruction {
+    opcode: Opcode::PUSHIMM32 {
+        imm: Immediate::I32(60),
     },
-];
+}];
 
 #[allow(dead_code)]
 const PUSHR64_CASES: [Instruction; 2] = [
     Instruction {
         opcode: Opcode::PUSHR64 {
             r64: GeneralPurposeRegister::RAX,
-        }
+        },
     },
     Instruction {
         opcode: Opcode::PUSHR64 {
             r64: GeneralPurposeRegister::R15,
-        }
+        },
     },
 ];
 
@@ -33,7 +31,7 @@ const PUSHRM64_CASES: [Instruction; 2] = [
                 displacement: None,
                 scale: None,
             },
-        }
+        },
     },
     Instruction {
         opcode: Opcode::PUSHRM64 {
@@ -43,8 +41,8 @@ const PUSHRM64_CASES: [Instruction; 2] = [
                 displacement: Some(Displacement::DISP8(-4)),
                 scale: Some(4),
             },
-        }
-    }
+        },
+    },
 ];
 
 #[cfg(test)]
