@@ -28,6 +28,16 @@ mod integration_tests {
         assert_eq!(8, build_and_exec("simple_32bit_inst"));
     }
 
+    #[test]
+    #[ignore]
+    fn various_move_test() {
+        assert_eq!(0, build_and_exec("various_move"));
+    }
+    #[test]
+    fn small_test() {
+        assert_eq!(42, build_and_exec("small"));
+    }
+
     fn build_and_exec(file_base: &str) -> i32 {
         let input_file = format!("examples/{}.s", file_base);
         let output_file = format!("/tmp/{}.o", file_base);

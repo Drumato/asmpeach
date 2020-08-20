@@ -278,6 +278,48 @@ impl Operand {
         }
     }
 
+    pub fn to_8bit(&self) -> Self {
+        match self {
+            Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_8bit()),
+            Operand::Immediate(imm) => Operand::Immediate(imm.as_8bit()),
+            Operand::ADDRESSING {
+                base_reg: b,
+                index_reg: i,
+                displacement: d,
+                scale: s,
+            } => Operand::ADDRESSING {
+                base_reg: b.to_8bit(),
+                index_reg: match i {
+                    Some(ireg) => Some(ireg.to_8bit()),
+                    None => None,
+                },
+                displacement: *d,
+                scale: *s,
+            },
+            Operand::LABEL(_label) => unreachable!(),
+        }
+    }
+    pub fn to_16bit(&self) -> Self {
+        match self {
+            Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_16bit()),
+            Operand::Immediate(imm) => Operand::Immediate(imm.as_16bit()),
+            Operand::ADDRESSING {
+                base_reg: b,
+                index_reg: i,
+                displacement: d,
+                scale: s,
+            } => Operand::ADDRESSING {
+                base_reg: b.to_16bit(),
+                index_reg: match i {
+                    Some(ireg) => Some(ireg.to_16bit()),
+                    None => None,
+                },
+                displacement: *d,
+                scale: *s,
+            },
+            Operand::LABEL(_label) => unreachable!(),
+        }
+    }
     pub fn to_32bit(&self) -> Self {
         match self {
             Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_32bit()),
@@ -344,6 +386,7 @@ impl Operand {
             Operand::LABEL(_label) => unreachable!(),
             Operand::Immediate(imm) => match imm {
                 Immediate::I8(_v) => OperandSize::BYTE,
+                Immediate::I16(_v) => OperandSize::WORD,
                 Immediate::I32(_v) => OperandSize::DWORD,
             },
         }

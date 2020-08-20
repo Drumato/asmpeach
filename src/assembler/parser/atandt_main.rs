@@ -58,7 +58,9 @@ impl Context {
         match directive {
             ".global" | ".globl" => self.parse_global_directive(iterator),
             ".type" => self.parse_symbol_type_directive(iterator),
-            _ => {}
+            ".section" => {},
+            ".text" => {},
+            _ => {},
         }
     }
 
@@ -88,15 +90,23 @@ impl Context {
 
     // シンボル名をパース後
     fn in_symbol(&mut self, line: &str, sym_name: &str) {
+        let line = line.trim_start().trim_end();
         // シンボル名の場合
-        if line.trim_end().ends_with(':') {
-            let another_sym = Self::remove_double_quote(&Self::remove_pat_and_newline(line, ":"));
-            self.state = State::InSymbol(another_sym.clone());
-            self.syms.entry(another_sym).or_insert_with(Symbol::default);
+        if line.ends_with(':') {
+            // ラベルかどうかチェック
+            if line.starts_with(".L") || line.starts_with("\".L") {
+                self.push_group(sym_name, &Self::remove_pat_and_newline(&line, ":"));
+            }else{
+                // ラベルではない => 別のシンボル定義と解釈
+                let another_sym = Self::remove_pat_and_newline(&line, ":");
+                self.state = State::InSymbol(another_sym.clone());
+                self.syms.entry(another_sym).or_insert_with(Symbol::default);
+            }
+
             return;
         }
 
-        if Self::is_blank_line(line) {
+        if Self::is_blank_line(&line) {
             return;
         }
 
@@ -107,13 +117,7 @@ impl Context {
         // .global等のディレクティブを見つけたら
         if self.is_directive_start(opcode) {
             self.state = State::TopLevel;
-            self.toplevel(line);
-            return;
-        }
-
-        // シンボル内のラベル
-        if opcode.starts_with(".L") {
-            self.push_group(sym_name, &Self::remove_pat_and_newline(opcode, ":"));
+            self.toplevel(&line);
             return;
         }
 
@@ -137,6 +141,7 @@ impl Context {
         let opcode = match opcode {
             "ret" => Opcode::RET,
             "endbr64" => Opcode::ENDBR64,
+            "syscall" => Opcode::SYSCALL,
             _ => unreachable!(),
         };
 
@@ -158,7 +163,7 @@ impl Context {
             "pushq" => Opcode::push(OperandSize::QWORD, operand),
             "popq" => Opcode::pop(OperandSize::QWORD, operand),
             "call" => Opcode::call(operand),
-            _ => unreachable!(),
+            _ => panic!("unreachable! => '{}'",opcode),
         };
 
         self.push_inst_cur_sym(sym_name, Instruction { opcode });
@@ -182,6 +187,9 @@ impl Context {
         let opcode = match opcode {
             "addl" => Opcode::add(OperandSize::DWORD, src_op.to_32bit(), dst_op.to_32bit()),
             "addq" => Opcode::add(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
+            "subq" => Opcode::sub(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
+            "movb" => Opcode::mov(OperandSize::BYTE, src_op.to_8bit(), dst_op.to_8bit()),
+            "movw" => Opcode::mov(OperandSize::WORD, src_op.to_16bit(), dst_op.to_16bit()),
             "movl" => Opcode::mov(OperandSize::DWORD, src_op.to_32bit(), dst_op.to_32bit()),
             "movq" => Opcode::mov(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
             _ => unreachable!(),
@@ -265,7 +273,7 @@ impl Context {
 
     fn is_directive_start(&self, directive: &str) -> bool {
         match directive {
-            ".globl" | ".global" | ".type" => true,
+            ".globl" | ".global" | ".type" | ".section"  | ".text" => true,
             _ => false,
         }
     }
@@ -291,7 +299,7 @@ impl Context {
             .get_mut(sym_name)
             .unwrap()
             .groups
-            .push(Group::new(label_name));
+            .push(Group::new(&Self::remove_double_quote(label_name)));
     }
 
     fn remove_pat_and_newline(line: &str, pat: &str) -> String {
@@ -476,6 +484,11 @@ mod parse_tests {
         assert!(Context::is_blank_line("\n"));
         assert!(Context::is_blank_line("        \n"));
         assert!(Context::is_blank_line("\t\t\t\t\n"));
+    }
+
+    #[test]
+    fn remove_double_quote_test() {
+        assert_eq!("main::entry".to_string(), Context::remove_double_quote("\"main::entry\""));
     }
 
     fn new_context() -> Context {

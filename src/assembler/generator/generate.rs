@@ -94,7 +94,9 @@ fn gen_group_code(
                     tup.1 = !(length + 4 - tup.1) + 1;
                 } else {
                     // jump系命令がラベルの前に存在した場合
-                    relative_jump_offset.insert(label.to_string(), (length, length + 3));
+                    if !group.label.ends_with("_entry") {
+                        relative_jump_offset.insert(label.to_string(), (length, length + 3));
+                    }
                 }
 
                 let mut base_bytes = inst.to_bytes();
@@ -111,7 +113,9 @@ fn gen_group_code(
                     tup.1 = !(length + 4 - tup.1) + 1;
                 } else {
                     // jump系命令がラベルの前に存在した場合
-                    relative_jump_offset.insert(label.to_string(), (length, length + 3));
+                    if !group.label.ends_with("_entry") {
+                        relative_jump_offset.insert(label.to_string(), (length, length + 3));
+                    }
                 }
 
                 let mut base_bytes = inst.to_bytes();
