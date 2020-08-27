@@ -81,43 +81,44 @@ impl GeneralPurposeRegister {
             GeneralPurposeRegister::AL
             | GeneralPurposeRegister::AX
             | GeneralPurposeRegister::EAX
-            | GeneralPurposeRegister::RAX
-            | GeneralPurposeRegister::R8 => 0,
+            | GeneralPurposeRegister::RAX => 0,
             GeneralPurposeRegister::CL
             | GeneralPurposeRegister::CX
             | GeneralPurposeRegister::ECX
-            | GeneralPurposeRegister::RCX
-            | GeneralPurposeRegister::R9 => 1,
+            | GeneralPurposeRegister::RCX => 1,
             GeneralPurposeRegister::DL
             | GeneralPurposeRegister::DX
             | GeneralPurposeRegister::EDX
-            | GeneralPurposeRegister::RDX
-            | GeneralPurposeRegister::R10 => 2,
+            | GeneralPurposeRegister::RDX => 2,
             GeneralPurposeRegister::BL
             | GeneralPurposeRegister::BX
             | GeneralPurposeRegister::EBX
-            | GeneralPurposeRegister::RBX
-            | GeneralPurposeRegister::R11 => 3,
+            | GeneralPurposeRegister::RBX => 3,
             GeneralPurposeRegister::AH
             | GeneralPurposeRegister::SP
             | GeneralPurposeRegister::ESP
-            | GeneralPurposeRegister::RSP
-            | GeneralPurposeRegister::R12 => 4,
+            | GeneralPurposeRegister::RSP  => 4,
             GeneralPurposeRegister::CH
             | GeneralPurposeRegister::BP
             | GeneralPurposeRegister::EBP
-            | GeneralPurposeRegister::RBP
-            | GeneralPurposeRegister::R13 => 5,
+            | GeneralPurposeRegister::RBP => 5,
             GeneralPurposeRegister::DH
             | GeneralPurposeRegister::SI
             | GeneralPurposeRegister::ESI
-            | GeneralPurposeRegister::RSI
-            | GeneralPurposeRegister::R14 => 6,
+            | GeneralPurposeRegister::RSI => 6,
             GeneralPurposeRegister::BH
             | GeneralPurposeRegister::DI
             | GeneralPurposeRegister::EDI
-            | GeneralPurposeRegister::RDI
-            | GeneralPurposeRegister::R15 => 7,
+            | GeneralPurposeRegister::RDI => 7,
+
+            GeneralPurposeRegister::R8 => 8,
+            GeneralPurposeRegister::R9 => 9,
+            GeneralPurposeRegister::R10 => 10,
+            GeneralPurposeRegister::R11 => 11,
+            GeneralPurposeRegister::R12 => 12,
+            GeneralPurposeRegister::R13 => 13,
+            GeneralPurposeRegister::R14 => 14,
+            GeneralPurposeRegister::R15 => 15,
         }
     }
 
@@ -265,6 +266,14 @@ impl GeneralPurposeRegister {
             5 => GeneralPurposeRegister::RBP,
             6 => GeneralPurposeRegister::RSI,
             7 => GeneralPurposeRegister::RDI,
+            8 =>  GeneralPurposeRegister::R8,
+            9 =>  GeneralPurposeRegister::R9,
+            10 =>  GeneralPurposeRegister::R10,
+            11 =>  GeneralPurposeRegister::R11,
+            12 =>  GeneralPurposeRegister::R12,
+            13 =>  GeneralPurposeRegister::R13,
+            14 =>  GeneralPurposeRegister::R14,
+            15 =>  GeneralPurposeRegister::R15,
             _ => unimplemented!(),
         }
     }

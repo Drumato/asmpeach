@@ -188,6 +188,7 @@ impl Context {
             "addl" => Opcode::add(OperandSize::DWORD, src_op.to_32bit(), dst_op.to_32bit()),
             "addq" => Opcode::add(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
             "subq" => Opcode::sub(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
+            "leaq" => Opcode::lea(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
             "movb" => Opcode::mov(OperandSize::BYTE, src_op.to_8bit(), dst_op.to_8bit()),
             "movw" => Opcode::mov(OperandSize::WORD, src_op.to_16bit(), dst_op.to_16bit()),
             "movl" => Opcode::mov(OperandSize::DWORD, src_op.to_32bit(), dst_op.to_32bit()),

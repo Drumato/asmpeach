@@ -77,18 +77,8 @@ pub enum Opcode {
     JELABEL { label: String },
 
     // Load Effective Address
-    /// スタティックリンクで使用される， `lea rax, .LS1` のような命令です．
-    /// このopcodeに対し `to_bytes()` メソッドを呼び出すと，
-    /// `[REX-Prefix, opcode, ModRM]` が返されます．
-    /// 自作アセンブラでは
-    /// `let mut base_bytes = inst.to_bytes(); base_bytes.append(&mut vec![0x25, 0x00, 0x00, 0x00, 0x00])` のように，
-    /// データセグメントを用いるプリフィックスと，再配置でアドレスを書き込むためのパディングを追加するといいでしょう．
-    /// そして再配置シンボルを定義して，リンク時に文字列のアドレスを書き込むといいと思います．
-    LEAR64FROMSTRADDR {
-        r64: GeneralPurposeRegister,
-        str_sym: String,
-        addend: usize,
-    },
+    /// Store effective address for m in register r64
+    LEAR64M{r64: GeneralPurposeRegister, m: Operand},
 
     // Move
     /// Move r8 to r/m8
@@ -206,11 +196,7 @@ impl Opcode {
             Opcode::JELABEL { label: _ } => vec![0x0f, 0x84],
 
             // Load Effective Address
-            Opcode::LEAR64FROMSTRADDR {
-                r64: _,
-                str_sym: _,
-                addend: _,
-            } => vec![0x8d],
+            Opcode::LEAR64M {r64: _, m: _} => vec![0x8d],
 
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => vec![0x88],
@@ -263,11 +249,7 @@ impl Opcode {
             Opcode::INCRM64 { rm64: _ } => Encoding::M,
             Opcode::JMPLABEL { label: _ } => Encoding::D,
             Opcode::JELABEL { label: _ } => Encoding::D,
-            Opcode::LEAR64FROMSTRADDR {
-                r64: _,
-                str_sym: _,
-                addend: _,
-            } => Encoding::RM,
+            Opcode::LEAR64M {r64: _, m: _}=> Encoding::RM,
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
             Opcode::MOVRM32R32 { r32: _, rm32: _ } => Encoding::MR,
             Opcode::MOVR32RM32 { r32: _, rm32: _ } => Encoding::RM,
@@ -318,11 +300,10 @@ impl Opcode {
             Opcode::INCRM64 { rm64 } => Some(REXPrefix::new_from_mem(true, rm64)),
 
             // Load Effective Address
-            Opcode::LEAR64FROMSTRADDR {
+            Opcode::LEAR64M {
                 r64,
-                str_sym: _,
-                addend: _,
-            } => Some(REXPrefix::new(true, false, false, r64.is_expanded())),
+                m,
+            } => Some(REXPrefix::new(true, r64.is_expanded(), m.index_reg_is_expanded(), m.is_expanded())),
 
             // Move
             Opcode::MOVRM64R64 { rm64, r64 } => {
@@ -416,14 +397,13 @@ impl Opcode {
             }
 
             // Load Effective Address
-            Opcode::LEAR64FROMSTRADDR {
+            Opcode::LEAR64M {
                 r64,
-                str_sym: _,
-                addend: _,
+                m,
             } => Some(ModRM::new_rm(
-                AddressingMode::REGISTER,
+                AddressingMode::DISP8,
                 r64,
-                &Operand::GENERALREGISTER(GeneralPurposeRegister::new_64bit_from_code(4)),
+                m,
             )),
 
             // Move
@@ -519,6 +499,9 @@ impl Opcode {
 
             // Increment
             Opcode::INCRM64 { rm64 } => rm64.get_displacement(),
+
+            // Lea
+            Opcode::LEAR64M {r64: _, m } => m.get_displacement(),
 
             // Move
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.get_displacement(),
@@ -616,15 +599,14 @@ impl Opcode {
             }
             Opcode::JMPLABEL { label } => format!("{} {}", self.opcode_to_intel(), label),
             Opcode::JELABEL { label } => format!("{} {}", self.opcode_to_intel(), label),
-            Opcode::LEAR64FROMSTRADDR {
+            Opcode::LEAR64M {
                 r64,
-                str_sym,
-                addend: _,
+                m,
             } => format!(
                 "{} {}, {}",
                 self.opcode_to_intel(),
-                str_sym,
-                r64.to_intel_string()
+                r64.to_intel_string(),
+                m.to_intel_string()
             ),
 
             // r64
@@ -726,14 +708,13 @@ impl Opcode {
             }
             Opcode::JMPLABEL { label } => format!("{} {}", self.opcode_to_at(), label),
             Opcode::JELABEL { label } => format!("{} {}", self.opcode_to_at(), label),
-            Opcode::LEAR64FROMSTRADDR {
+            Opcode::LEAR64M {
                 r64,
-                str_sym,
-                addend: _,
+                m,
             } => format!(
                 "{} {}, {}",
                 self.opcode_to_at(),
-                str_sym,
+                m.to_at_string(),
                 r64.to_at_string()
             ),
 
@@ -843,10 +824,9 @@ impl Opcode {
             Opcode::JELABEL { label: _ } => "je",
 
             // Load Effective Address
-            Opcode::LEAR64FROMSTRADDR {
+            Opcode::LEAR64M {
                 r64: _,
-                str_sym: _,
-                addend: _,
+                m: _,
             } => "lea",
 
             // none
@@ -923,10 +903,9 @@ impl Opcode {
             Opcode::JELABEL { label: _ } => "je",
 
             // Load Effective Address
-            Opcode::LEAR64FROMSTRADDR {
+            Opcode::LEAR64M {
                 r64: _,
-                str_sym: _,
-                addend: _,
+                m: _,
             } => "leaq",
 
             // none

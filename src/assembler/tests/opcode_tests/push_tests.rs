@@ -140,11 +140,6 @@ mod to_bytes_tests {
         let inst = &PUSHR64_CASES[0];
 
         assert_eq!(inst.to_bytes(), vec![0x50]);
-
-        // push r15
-        let inst = &PUSHR64_CASES[1];
-
-        assert_eq!(inst.to_bytes(), vec![0x41, 0x57]);
     }
 
     #[test]

@@ -37,6 +37,10 @@ mod integration_tests {
     fn small_test() {
         assert_eq!(42, build_and_exec("small"));
     }
+    #[test]
+    fn small_2_test() {
+        assert_eq!(30, build_and_exec("small_2"));
+    }
 
     fn build_and_exec(file_base: &str) -> i32 {
         let input_file = format!("examples/{}.s", file_base);

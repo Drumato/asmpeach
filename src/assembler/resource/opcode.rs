@@ -13,3 +13,5 @@ mod pop;
 pub use pop::*;
 mod sub;
 pub use sub::*;
+mod lea;
+pub use lea::*;

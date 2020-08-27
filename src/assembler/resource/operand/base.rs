@@ -64,7 +64,7 @@ impl Operand {
 
                 index_reg.unwrap().is_expanded()
             }
-
+            Operand::GENERALREGISTER(gpr) => gpr.is_expanded(),
             _ => false,
         }
     }

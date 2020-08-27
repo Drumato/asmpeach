@@ -32,12 +32,7 @@ impl REXPrefix {
     }
 
     pub fn new_from_mem(is_64bit: bool, rm: &Operand) -> Self {
-        Self {
-            w_bit: is_64bit,
-            r_bit: rm.is_expanded(),
-            x_bit: rm.req_sib_byte() && rm.index_reg_is_expanded(),
-            b_bit: false,
-        }
+        Self::new(is_64bit,rm.is_expanded(),rm.req_sib_byte() && rm.index_reg_is_expanded(),false)
     }
 
     pub fn new_from_mem_and_reg(
@@ -45,12 +40,7 @@ impl REXPrefix {
         reg: &GeneralPurposeRegister,
         rm: &Operand,
     ) -> Self {
-        Self {
-            w_bit: is_64bit,
-            r_bit: rm.is_expanded(),
-            x_bit: rm.req_sib_byte() && rm.index_reg_is_expanded(),
-            b_bit: reg.is_expanded(),
-        }
+        Self::new(is_64bit,rm.is_expanded(),rm.req_sib_byte() && rm.index_reg_is_expanded(),reg.is_expanded())
     }
 
     pub fn to_byte(&self) -> u8 {

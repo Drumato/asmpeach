@@ -55,9 +55,5 @@ mod to_bytes_tests {
         let inst = &POPR64_CASES[0];
 
         assert_eq!(inst.to_bytes(), vec![0x58]);
-
-        let inst = &POPR64_CASES[1];
-
-        assert_eq!(inst.to_bytes(), vec![0x41, 0x5f]);
     }
 }
