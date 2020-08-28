@@ -15,3 +15,5 @@ mod sub;
 pub use sub::*;
 mod lea;
 pub use lea::*;
+mod imul;
+pub use imul::*;

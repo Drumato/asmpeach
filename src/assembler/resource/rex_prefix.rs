@@ -54,7 +54,7 @@ impl REXPrefix {
         };
 
         base | f(self.w_bit, Self::W_BIT)
-            | f(self.r_bit, Self::W_BIT)
+            | f(self.r_bit, Self::R_BIT)
             | f(self.x_bit, Self::X_BIT)
             | f(self.b_bit, Self::B_BIT)
     }

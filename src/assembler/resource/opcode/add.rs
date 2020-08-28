@@ -5,7 +5,7 @@ impl Opcode {
         match size {
             OperandSize::DWORD => match src {
                 Operand::GENERALREGISTER(src_gpr) => match dst {
-                    // addl %eax, -8(%ebp)
+                    // add -8[ebp], eax
                     Operand::ADDRESSING {
                         base_reg: _,
                         index_reg: _,
@@ -15,7 +15,7 @@ impl Opcode {
                         rm32: dst,
                         r32: src_gpr,
                     },
-                    // addl %eax, %ebx
+                    // add eax, ebx
                     Operand::GENERALREGISTER(dst_gpr) => Opcode::ADDR32RM32 {
                         r32: dst_gpr,
                         rm32: src,
@@ -26,7 +26,7 @@ impl Opcode {
             },
             OperandSize::QWORD => match src {
                 Operand::GENERALREGISTER(src_gpr) => match dst {
-                    // addq %rax, -8(%rbp)
+                    // add -8[rbp], rax
                     Operand::ADDRESSING {
                         base_reg: _,
                         index_reg: _,
@@ -36,7 +36,7 @@ impl Opcode {
                         rm64: dst,
                         r64: src_gpr,
                     },
-                    // addq %rax, %rbx
+                    // add rax, rbx
                     Operand::GENERALREGISTER(dst_gpr) => Opcode::ADDR64RM64 {
                         r64: dst_gpr,
                         rm64: src,

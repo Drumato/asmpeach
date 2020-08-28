@@ -290,7 +290,7 @@ impl Opcode {
 
             // (signed) Integer Multiply
             Opcode::IMULR64RM64 { r64, rm64 } => {
-                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
+                Some(REXPrefix::new(true, r64.is_expanded(), rm64.index_reg_is_expanded(), rm64.is_expanded()))
             }
 
             // (signed) Integer Divide
@@ -307,12 +307,14 @@ impl Opcode {
 
             // Move
             Opcode::MOVRM64R64 { rm64, r64 } => {
-                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
+                Some(REXPrefix::new(true, r64.is_expanded(), rm64.index_reg_is_expanded(), rm64.is_expanded()))
             }
             Opcode::MOVR64RM64 { r64, rm64 } => {
-                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
+                Some(REXPrefix::new(true, r64.is_expanded(), rm64.index_reg_is_expanded(), rm64.is_expanded()))
             }
-            Opcode::MOVRM64IMM32 { rm64, imm: _ } => Some(REXPrefix::new_from_mem(true, rm64)),
+            Opcode::MOVRM64IMM32 { rm64, imm: _ } => {
+                Some(REXPrefix::new(true, false, rm64.req_sib_byte() && rm64.index_reg_is_expanded(), rm64.is_expanded()))
+            },
 
             // Neg
             Opcode::NEGRM64 { rm64 } => Some(REXPrefix::new_from_mem(true, rm64)),

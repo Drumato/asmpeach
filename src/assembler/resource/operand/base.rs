@@ -53,16 +53,12 @@ impl Operand {
     pub fn is_expanded(&self) -> bool {
         match self {
             Operand::ADDRESSING {
-                base_reg: _,
-                index_reg,
+                base_reg,
+                index_reg: _,
                 displacement: _,
                 scale: _,
             } => {
-                if index_reg.is_none() {
-                    return false;
-                }
-
-                index_reg.unwrap().is_expanded()
+                base_reg.is_expanded()
             }
             Operand::GENERALREGISTER(gpr) => gpr.is_expanded(),
             _ => false,
