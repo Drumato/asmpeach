@@ -37,6 +37,10 @@ impl ELFBuilder {
         }
     }
 
+    pub fn give_file(self) -> elf_utilities::file::ELF64 {
+        self.file
+    }
+
     pub fn add_section(&mut self, section: elf_utilities::section::Section64) {
         self.file.add_section(section);
     }
