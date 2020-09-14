@@ -58,9 +58,9 @@ impl Context {
         match directive {
             ".global" | ".globl" => self.parse_global_directive(iterator),
             ".type" => self.parse_symbol_type_directive(iterator),
-            ".section" => {},
-            ".text" => {},
-            _ => {},
+            ".section" => {}
+            ".text" => {}
+            _ => {}
         }
     }
 
@@ -96,7 +96,7 @@ impl Context {
             // ラベルかどうかチェック
             if line.starts_with(".L") || line.starts_with("\".L") {
                 self.push_group(sym_name, &Self::remove_pat_and_newline(&line, ":"));
-            }else{
+            } else {
                 // ラベルではない => 別のシンボル定義と解釈
                 let another_sym = Self::remove_pat_and_newline(&line, ":");
                 self.state = State::InSymbol(another_sym.clone());
@@ -275,7 +275,7 @@ impl Context {
 
     fn is_directive_start(&self, directive: &str) -> bool {
         match directive {
-            ".globl" | ".global" | ".type" | ".section"  | ".text" => true,
+            ".globl" | ".global" | ".type" | ".section" | ".text" => true,
             _ => false,
         }
     }
@@ -404,7 +404,7 @@ mod parse_tests {
         assert_eq!(
             Opcode::MOVRM64IMM32 {
                 imm: Immediate::I32(3),
-                rm64: Operand::ADDRESSING{
+                rm64: Operand::ADDRESSING {
                     base_reg: GeneralPurposeRegister::RBP,
                     index_reg: None,
                     displacement: Some(Displacement::DISP8(-24)),
@@ -490,7 +490,10 @@ mod parse_tests {
 
     #[test]
     fn remove_double_quote_test() {
-        assert_eq!("main::entry".to_string(), Context::remove_double_quote("\"main::entry\""));
+        assert_eq!(
+            "main::entry".to_string(),
+            Context::remove_double_quote("\"main::entry\"")
+        );
     }
 
     fn new_context() -> Context {

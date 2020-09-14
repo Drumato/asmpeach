@@ -2,4 +2,4 @@
 
 mod assembler;
 
-pub use assembler::*;
+pub use assembler::{assemble_code, assemble_file, Syntax};

@@ -1,6 +1,7 @@
 use fmt::Formatter;
 use std::fmt;
 
+#[allow(dead_code)]
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum GeneralPurposeRegister {
     // 8bit general-purpose registers
@@ -13,19 +14,17 @@ pub enum GeneralPurposeRegister {
     CL,
     DL,
 
-        // 16bit general-purpose registers
-        AX,
-        BX,
-        CX,
-        DX,
-        SI,
-        DI,
-        BP,
-        SP,
-    
+    // 16bit general-purpose registers
+    AX,
+    BX,
+    CX,
+    DX,
+    SI,
+    DI,
+    BP,
+    SP,
 
     // 32bit general-purpose registers
-
     /// Accumulator Register
     EAX,
 
@@ -74,6 +73,7 @@ pub enum GeneralPurposeRegister {
     R15,
 }
 
+#[allow(dead_code)]
 impl GeneralPurposeRegister {
     /// register code
     pub fn number(&self) -> u8 {
@@ -97,7 +97,7 @@ impl GeneralPurposeRegister {
             GeneralPurposeRegister::AH
             | GeneralPurposeRegister::SP
             | GeneralPurposeRegister::ESP
-            | GeneralPurposeRegister::RSP  => 4,
+            | GeneralPurposeRegister::RSP => 4,
             GeneralPurposeRegister::CH
             | GeneralPurposeRegister::BP
             | GeneralPurposeRegister::EBP
@@ -185,16 +185,16 @@ impl GeneralPurposeRegister {
             GeneralPurposeRegister::BP => "bp",
             GeneralPurposeRegister::DI => "di",
             GeneralPurposeRegister::SI => "si",
-                    
+
             // 32bit general-purpose registers
-                        Self::EAX => "eax",
-                        Self::ECX => "ecx",
-                        Self::EDX => "edx",
-                        Self::EBX => "ebx",
-                        Self::ESP => "esp",
-                        Self::EBP => "ebp",
-                        Self::ESI => "esi",
-                        Self::EDI => "edi",
+            Self::EAX => "eax",
+            Self::ECX => "ecx",
+            Self::EDX => "edx",
+            Self::EBX => "ebx",
+            Self::ESP => "esp",
+            Self::EBP => "ebp",
+            Self::ESI => "esi",
+            Self::EDI => "edi",
 
             // 64bit general-purpose registers
             Self::RAX => "rax",
@@ -266,14 +266,14 @@ impl GeneralPurposeRegister {
             5 => GeneralPurposeRegister::RBP,
             6 => GeneralPurposeRegister::RSI,
             7 => GeneralPurposeRegister::RDI,
-            8 =>  GeneralPurposeRegister::R8,
-            9 =>  GeneralPurposeRegister::R9,
-            10 =>  GeneralPurposeRegister::R10,
-            11 =>  GeneralPurposeRegister::R11,
-            12 =>  GeneralPurposeRegister::R12,
-            13 =>  GeneralPurposeRegister::R13,
-            14 =>  GeneralPurposeRegister::R14,
-            15 =>  GeneralPurposeRegister::R15,
+            8 => GeneralPurposeRegister::R8,
+            9 => GeneralPurposeRegister::R9,
+            10 => GeneralPurposeRegister::R10,
+            11 => GeneralPurposeRegister::R11,
+            12 => GeneralPurposeRegister::R12,
+            13 => GeneralPurposeRegister::R13,
+            14 => GeneralPurposeRegister::R14,
+            15 => GeneralPurposeRegister::R15,
             _ => unimplemented!(),
         }
     }
@@ -340,6 +340,7 @@ impl fmt::Display for GeneralPurposeRegister {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum RegisterSize {
     S8,

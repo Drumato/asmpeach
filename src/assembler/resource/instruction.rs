@@ -1,11 +1,13 @@
 use crate::assembler::resource::Opcode;
 
 /// An implementation of x64 instruction.
+#[allow(dead_code)]
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub struct Instruction {
     pub opcode: Opcode,
 }
 
+#[allow(dead_code)]
 impl Instruction {
     // assembling for each instructions.
     pub fn to_bytes(&self) -> Vec<u8> {

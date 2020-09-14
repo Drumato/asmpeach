@@ -69,5 +69,8 @@ fn assemble(source: String, syntax: Syntax) -> ELFOrError {
     // ヘッダの調整
     builder.condition_elf_header();
 
-    Ok(elf_utilities::file::ELF64Dumper::new(builder.give_file(), 0o644))
+    Ok(elf_utilities::file::ELF64Dumper::new(
+        builder.give_file(),
+        0o644,
+    ))
 }

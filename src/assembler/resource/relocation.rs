@@ -6,6 +6,7 @@ pub struct RelaSymbol {
     pub rela64: Rela64,
 }
 
+#[allow(dead_code)]
 impl RelaSymbol {
     pub fn to_le_bytes(&self) -> Vec<u8> {
         self.rela64.to_le_bytes()

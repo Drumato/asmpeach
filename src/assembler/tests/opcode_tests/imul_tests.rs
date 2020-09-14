@@ -35,7 +35,6 @@ mod to_at_tests {
     }
 }
 
-
 #[cfg(test)]
 mod to_bytes_tests {
     use super::*;
@@ -43,6 +42,6 @@ mod to_bytes_tests {
     #[test]
     fn imulr64rm64_test() {
         let inst = &IMULR64RM64[0];
-        assert_eq!(inst.to_bytes(), vec![0x4c,0x0f,0xaf,0x65,0xf0]);
+        assert_eq!(inst.to_bytes(), vec![0x4c, 0x0f, 0xaf, 0x65, 0xf0]);
     }
 }

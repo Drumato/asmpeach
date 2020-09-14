@@ -2,7 +2,7 @@ use crate::assembler::resource::*;
 impl Opcode {
     pub fn mov(size: OperandSize, src: Operand, dst: Operand) -> Self {
         match size {
-            OperandSize::DWORD => match src{
+            OperandSize::DWORD => match src {
                 Operand::GENERALREGISTER(src_gpr) => match dst {
                     // movl %ebx, %eax
                     Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM32R32 {
@@ -47,7 +47,7 @@ impl Opcode {
                     _ => unreachable!(),
                 },
                 _ => unreachable!(),
-            }
+            },
             OperandSize::QWORD => match src {
                 Operand::GENERALREGISTER(src_gpr) => match dst {
                     // movq %rbx, %rax

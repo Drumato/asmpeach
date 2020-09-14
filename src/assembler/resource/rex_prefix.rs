@@ -15,6 +15,7 @@ pub struct REXPrefix {
     pub b_bit: bool,
 }
 
+#[allow(dead_code)]
 impl REXPrefix {
     pub const BASE: u8 = 0x40;
     pub const W_BIT: u8 = 0x08;
@@ -32,7 +33,12 @@ impl REXPrefix {
     }
 
     pub fn new_from_mem(is_64bit: bool, rm: &Operand) -> Self {
-        Self::new(is_64bit,rm.is_expanded(),rm.req_sib_byte() && rm.index_reg_is_expanded(),false)
+        Self::new(
+            is_64bit,
+            rm.is_expanded(),
+            rm.req_sib_byte() && rm.index_reg_is_expanded(),
+            false,
+        )
     }
 
     pub fn new_from_mem_and_reg(
@@ -40,7 +46,12 @@ impl REXPrefix {
         reg: &GeneralPurposeRegister,
         rm: &Operand,
     ) -> Self {
-        Self::new(is_64bit,rm.is_expanded(),rm.req_sib_byte() && rm.index_reg_is_expanded(),reg.is_expanded())
+        Self::new(
+            is_64bit,
+            rm.is_expanded(),
+            rm.req_sib_byte() && rm.index_reg_is_expanded(),
+            reg.is_expanded(),
+        )
     }
 
     pub fn to_byte(&self) -> u8 {

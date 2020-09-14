@@ -2,6 +2,7 @@ use crate::assembler::resource::{
     AddressingMode, Displacement, GeneralPurposeRegister, Immediate, RegisterSize, SIBByte,
 };
 
+#[allow(dead_code)]
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Operand {
     // register operands
@@ -27,6 +28,7 @@ pub enum Operand {
     Immediate(Immediate),
 }
 
+#[allow(dead_code)]
 impl Operand {
     /// ラベルの文字列を取得
     pub fn copy_label(&self) -> String {
@@ -57,9 +59,7 @@ impl Operand {
                 index_reg: _,
                 displacement: _,
                 scale: _,
-            } => {
-                base_reg.is_expanded()
-            }
+            } => base_reg.is_expanded(),
             Operand::GENERALREGISTER(gpr) => gpr.is_expanded(),
             _ => false,
         }

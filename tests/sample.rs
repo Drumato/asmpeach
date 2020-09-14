@@ -22,7 +22,7 @@ mod integration_tests {
     fn store_and_load_test() {
         assert_eq!(8, build_and_exec("store_and_load"));
     }
-    
+
     #[test]
     fn simple_32bit_inst_test() {
         assert_eq!(8, build_and_exec("simple_32bit_inst"));
@@ -50,8 +50,7 @@ mod integration_tests {
         let input_file = format!("examples/{}.s", file_base);
         let output_file = format!("/tmp/{}.o", file_base);
         let binary_path = format!("./{}", file_base);
-        let elf_builder =
-            x64_asm::assemble_file(&input_file, x64_asm::Syntax::ATANDT).unwrap();
+        let elf_builder = x64_asm::assemble_file(&input_file, x64_asm::Syntax::ATANDT).unwrap();
         elf_builder.generate_elf_file(&output_file).unwrap();
 
         let _compile_cmd = Command::new("gcc")

@@ -1,6 +1,7 @@
 use crate::assembler::resource::Group;
 use elf_utilities::symbol;
 
+#[allow(dead_code)]
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub struct Symbol {
     pub groups: Vec<Group>,
@@ -23,6 +24,7 @@ impl Default for Symbol {
     }
 }
 
+#[allow(dead_code)]
 impl Symbol {
     pub fn as_function(&mut self) {
         self.ty = symbol::STT_FUNC;

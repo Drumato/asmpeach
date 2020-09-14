@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum Encoding {
     ZO,

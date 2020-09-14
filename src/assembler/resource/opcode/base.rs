@@ -1,19 +1,20 @@
 use crate::assembler::resource::*;
 
+#[allow(dead_code)]
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Opcode {
     // Add
-        /// Add r/m32 to r32
-        ADDRM32R32 {
-            rm32: Operand,
-            r32: GeneralPurposeRegister,
-        },
-    
-        /// Add r32 to r/m32
-        ADDR32RM32 {
-            r32: GeneralPurposeRegister,
-            rm32: Operand,
-        },
+    /// Add r/m32 to r32
+    ADDRM32R32 {
+        rm32: Operand,
+        r32: GeneralPurposeRegister,
+    },
+
+    /// Add r32 to r/m32
+    ADDR32RM32 {
+        r32: GeneralPurposeRegister,
+        rm32: Operand,
+    },
     /// Add r/m64 to r64
     ADDRM64R64 {
         rm64: Operand,
@@ -78,7 +79,10 @@ pub enum Opcode {
 
     // Load Effective Address
     /// Store effective address for m in register r64
-    LEAR64M{r64: GeneralPurposeRegister, m: Operand},
+    LEAR64M {
+        r64: GeneralPurposeRegister,
+        m: Operand,
+    },
 
     // Move
     /// Move r8 to r/m8
@@ -87,20 +91,20 @@ pub enum Opcode {
         rm8: Operand,
     },
 
-        /// Move r32 to r/m32
-        MOVRM32R32 {
-            r32: GeneralPurposeRegister,
-            rm32: Operand,
-        },
-    
-        /// Move r/m32 to r32
-        MOVR32RM32 {
-            r32: GeneralPurposeRegister,
-            rm32: Operand,
-        },
-    
-        /// Move imm32 to r/m32
-        MOVRM32IMM32 { imm: Immediate, rm32: Operand },
+    /// Move r32 to r/m32
+    MOVRM32R32 {
+        r32: GeneralPurposeRegister,
+        rm32: Operand,
+    },
+
+    /// Move r/m32 to r32
+    MOVR32RM32 {
+        r32: GeneralPurposeRegister,
+        rm32: Operand,
+    },
+
+    /// Move imm32 to r/m32
+    MOVRM32IMM32 { imm: Immediate, rm32: Operand },
 
     /// Move r64 to r/m64
     MOVRM64R64 {
@@ -161,7 +165,7 @@ pub enum Opcode {
     /// for comments
     COMMENT(String),
 }
-
+#[allow(dead_code)]
 impl Opcode {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
@@ -196,7 +200,7 @@ impl Opcode {
             Opcode::JELABEL { label: _ } => vec![0x0f, 0x84],
 
             // Load Effective Address
-            Opcode::LEAR64M {r64: _, m: _} => vec![0x8d],
+            Opcode::LEAR64M { r64: _, m: _ } => vec![0x8d],
 
             // Move
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => vec![0x88],
@@ -249,7 +253,7 @@ impl Opcode {
             Opcode::INCRM64 { rm64: _ } => Encoding::M,
             Opcode::JMPLABEL { label: _ } => Encoding::D,
             Opcode::JELABEL { label: _ } => Encoding::D,
-            Opcode::LEAR64M {r64: _, m: _}=> Encoding::RM,
+            Opcode::LEAR64M { r64: _, m: _ } => Encoding::RM,
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
             Opcode::MOVRM32R32 { r32: _, rm32: _ } => Encoding::MR,
             Opcode::MOVR32RM32 { r32: _, rm32: _ } => Encoding::RM,
@@ -289,9 +293,12 @@ impl Opcode {
             Opcode::CMPRAXIMM32 { imm: _ } => Some(REXPrefix::new(true, false, false, false)),
 
             // (signed) Integer Multiply
-            Opcode::IMULR64RM64 { r64, rm64 } => {
-                Some(REXPrefix::new(true, r64.is_expanded(), rm64.index_reg_is_expanded(), rm64.is_expanded()))
-            }
+            Opcode::IMULR64RM64 { r64, rm64 } => Some(REXPrefix::new(
+                true,
+                r64.is_expanded(),
+                rm64.index_reg_is_expanded(),
+                rm64.is_expanded(),
+            )),
 
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64 } => Some(REXPrefix::new_from_mem(true, rm64)),
@@ -300,21 +307,32 @@ impl Opcode {
             Opcode::INCRM64 { rm64 } => Some(REXPrefix::new_from_mem(true, rm64)),
 
             // Load Effective Address
-            Opcode::LEAR64M {
-                r64,
-                m,
-            } => Some(REXPrefix::new(true, r64.is_expanded(), m.index_reg_is_expanded(), m.is_expanded())),
+            Opcode::LEAR64M { r64, m } => Some(REXPrefix::new(
+                true,
+                r64.is_expanded(),
+                m.index_reg_is_expanded(),
+                m.is_expanded(),
+            )),
 
             // Move
-            Opcode::MOVRM64R64 { rm64, r64 } => {
-                Some(REXPrefix::new(true, r64.is_expanded(), rm64.index_reg_is_expanded(), rm64.is_expanded()))
-            }
-            Opcode::MOVR64RM64 { r64, rm64 } => {
-                Some(REXPrefix::new(true, r64.is_expanded(), rm64.index_reg_is_expanded(), rm64.is_expanded()))
-            }
-            Opcode::MOVRM64IMM32 { rm64, imm: _ } => {
-                Some(REXPrefix::new(true, false, rm64.req_sib_byte() && rm64.index_reg_is_expanded(), rm64.is_expanded()))
-            },
+            Opcode::MOVRM64R64 { rm64, r64 } => Some(REXPrefix::new(
+                true,
+                r64.is_expanded(),
+                rm64.index_reg_is_expanded(),
+                rm64.is_expanded(),
+            )),
+            Opcode::MOVR64RM64 { r64, rm64 } => Some(REXPrefix::new(
+                true,
+                r64.is_expanded(),
+                rm64.index_reg_is_expanded(),
+                rm64.is_expanded(),
+            )),
+            Opcode::MOVRM64IMM32 { rm64, imm: _ } => Some(REXPrefix::new(
+                true,
+                false,
+                rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
+                rm64.is_expanded(),
+            )),
 
             // Neg
             Opcode::NEGRM64 { rm64 } => Some(REXPrefix::new_from_mem(true, rm64)),
@@ -399,14 +417,7 @@ impl Opcode {
             }
 
             // Load Effective Address
-            Opcode::LEAR64M {
-                r64,
-                m,
-            } => Some(ModRM::new_rm(
-                AddressingMode::DISP8,
-                r64,
-                m,
-            )),
+            Opcode::LEAR64M { r64, m } => Some(ModRM::new_rm(AddressingMode::DISP8, r64, m)),
 
             // Move
             Opcode::MOVRM8R8 { rm8, r8 } => {
@@ -503,16 +514,16 @@ impl Opcode {
             Opcode::INCRM64 { rm64 } => rm64.get_displacement(),
 
             // Lea
-            Opcode::LEAR64M {r64: _, m } => m.get_displacement(),
+            Opcode::LEAR64M { r64: _, m } => m.get_displacement(),
 
             // Move
             Opcode::MOVRM8R8 { rm8, r8: _ } => rm8.get_displacement(),
             Opcode::MOVR32RM32 { rm32, r32: _ } => rm32.get_displacement(),
             Opcode::MOVRM32R32 { rm32, r32: _ } => rm32.get_displacement(),
-            Opcode::MOVRM32IMM32{rm32, imm: _} => rm32.get_displacement(),
+            Opcode::MOVRM32IMM32 { rm32, imm: _ } => rm32.get_displacement(),
             Opcode::MOVR64RM64 { rm64, r64: _ } => rm64.get_displacement(),
             Opcode::MOVRM64R64 { rm64, r64: _ } => rm64.get_displacement(),
-            Opcode::MOVRM64IMM32{rm64, imm: _} => rm64.get_displacement(),
+            Opcode::MOVRM64IMM32 { rm64, imm: _ } => rm64.get_displacement(),
 
             // Neg
             Opcode::NEGRM64 { rm64 } => rm64.get_displacement(),
@@ -590,9 +601,12 @@ impl Opcode {
     /// to Intel syntax.
     pub fn to_intel_string(&self) -> String {
         match &self {
-            Opcode::CWD | Opcode::CDQ | Opcode::CQO | Opcode::ENDBR64 | Opcode::RET | Opcode::SYSCALL => {
-                self.opcode_to_intel().to_string()
-            }
+            Opcode::CWD
+            | Opcode::CDQ
+            | Opcode::CQO
+            | Opcode::ENDBR64
+            | Opcode::RET
+            | Opcode::SYSCALL => self.opcode_to_intel().to_string(),
             Opcode::CALLFUNC(func) => {
                 format!("{} {}", self.opcode_to_intel(), func.to_intel_string())
             }
@@ -601,10 +615,7 @@ impl Opcode {
             }
             Opcode::JMPLABEL { label } => format!("{} {}", self.opcode_to_intel(), label),
             Opcode::JELABEL { label } => format!("{} {}", self.opcode_to_intel(), label),
-            Opcode::LEAR64M {
-                r64,
-                m,
-            } => format!(
+            Opcode::LEAR64M { r64, m } => format!(
                 "{} {}, {}",
                 self.opcode_to_intel(),
                 r64.to_intel_string(),
@@ -630,8 +641,7 @@ impl Opcode {
             }
 
             // r32, r/m32
-            Opcode::ADDR32RM32{r32, rm32}
-            | Opcode::MOVR32RM32{r32, rm32} => format!(
+            Opcode::ADDR32RM32 { r32, rm32 } | Opcode::MOVR32RM32 { r32, rm32 } => format!(
                 "{} {}, {}",
                 self.opcode_to_intel(),
                 r32.to_intel_string(),
@@ -658,8 +668,7 @@ impl Opcode {
             ),
 
             // r/m32, r32
-            Opcode::ADDRM32R32 { rm32, r32 }
-            | Opcode::MOVRM32R32{rm32, r32} => format!(
+            Opcode::ADDRM32R32 { rm32, r32 } | Opcode::MOVRM32R32 { rm32, r32 } => format!(
                 "{} {}, {}",
                 self.opcode_to_intel(),
                 rm32.to_intel_string(),
@@ -701,19 +710,19 @@ impl Opcode {
     pub fn to_at_string(&self) -> String {
         match &self {
             // none
-            Opcode::CWD | Opcode::CDQ | Opcode::CQO | Opcode::RET | Opcode::ENDBR64 | Opcode::SYSCALL => {
-                self.opcode_to_at().to_string()
-            }
+            Opcode::CWD
+            | Opcode::CDQ
+            | Opcode::CQO
+            | Opcode::RET
+            | Opcode::ENDBR64
+            | Opcode::SYSCALL => self.opcode_to_at().to_string(),
             Opcode::CALLFUNC(func) => format!("{} {}", self.opcode_to_at(), func.to_at_string()),
             Opcode::CMPRAXIMM32 { imm } => {
                 format!("{} {}, %rax", self.opcode_to_at(), imm.to_at_string())
             }
             Opcode::JMPLABEL { label } => format!("{} {}", self.opcode_to_at(), label),
             Opcode::JELABEL { label } => format!("{} {}", self.opcode_to_at(), label),
-            Opcode::LEAR64M {
-                r64,
-                m,
-            } => format!(
+            Opcode::LEAR64M { r64, m } => format!(
                 "{} {}, {}",
                 self.opcode_to_at(),
                 m.to_at_string(),
@@ -737,8 +746,7 @@ impl Opcode {
             }
 
             // r32, r/m32
-            Opcode::ADDR32RM32{r32, rm32}
-            | Opcode::MOVR32RM32{r32, rm32} => format!(
+            Opcode::ADDR32RM32 { r32, rm32 } | Opcode::MOVR32RM32 { r32, rm32 } => format!(
                 "{} {}, {}",
                 self.opcode_to_at(),
                 rm32.to_at_string(),
@@ -765,8 +773,7 @@ impl Opcode {
             ),
 
             // r/m32, r32
-            Opcode::ADDRM32R32{rm32, r32}
-            | Opcode::MOVRM32R32{rm32, r32} => format!(
+            Opcode::ADDRM32R32 { rm32, r32 } | Opcode::MOVRM32R32 { rm32, r32 } => format!(
                 "{} {}, {}",
                 self.opcode_to_at(),
                 r32.to_at_string(),
@@ -791,7 +798,6 @@ impl Opcode {
                 rm32.to_at_string()
             ),
 
-
             // r/m64, imm32
             Opcode::MOVRM64IMM32 { rm64, imm } | Opcode::SUBRM64IMM32 { rm64, imm } => format!(
                 "{} {}, {}",
@@ -808,12 +814,10 @@ impl Opcode {
     fn opcode_to_intel(&self) -> &str {
         match &self {
             // Add
-            Opcode::ADDRM32R32{rm32: _, r32: _} 
-            | Opcode::ADDR32RM32{rm32: _, r32: _} 
-            | Opcode::ADDRM64R64 { rm64: _, r64: _ } 
-            | Opcode::ADDR64RM64 { r64: _, rm64: _ } => {
-                "add"
-            }
+            Opcode::ADDRM32R32 { rm32: _, r32: _ }
+            | Opcode::ADDR32RM32 { rm32: _, r32: _ }
+            | Opcode::ADDRM64R64 { rm64: _, r64: _ }
+            | Opcode::ADDR64RM64 { r64: _, rm64: _ } => "add",
 
             // Call
             Opcode::CALLFUNC(_func) => "call",
@@ -826,10 +830,7 @@ impl Opcode {
             Opcode::JELABEL { label: _ } => "je",
 
             // Load Effective Address
-            Opcode::LEAR64M {
-                r64: _,
-                m: _,
-            } => "lea",
+            Opcode::LEAR64M { r64: _, m: _ } => "lea",
 
             // none
             Opcode::CWD => "cwd",
@@ -885,12 +886,10 @@ impl Opcode {
     fn opcode_to_at(&self) -> &str {
         match &self {
             // Add
-            Opcode::ADDRM32R32 { rm32: _, r32: _ } 
-            | Opcode::ADDR32RM32 { r32: _, rm32: _ } => {
+            Opcode::ADDRM32R32 { rm32: _, r32: _ } | Opcode::ADDR32RM32 { r32: _, rm32: _ } => {
                 "addl"
             }
-            Opcode::ADDRM64R64 { rm64: _, r64: _ }
-             | Opcode::ADDR64RM64 { r64: _, rm64: _ } => {
+            Opcode::ADDRM64R64 { rm64: _, r64: _ } | Opcode::ADDR64RM64 { r64: _, rm64: _ } => {
                 "addq"
             }
 
@@ -905,10 +904,7 @@ impl Opcode {
             Opcode::JELABEL { label: _ } => "je",
 
             // Load Effective Address
-            Opcode::LEAR64M {
-                r64: _,
-                m: _,
-            } => "leaq",
+            Opcode::LEAR64M { r64: _, m: _ } => "leaq",
 
             // none
             Opcode::CWD => "cwtd",
