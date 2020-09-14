@@ -26,9 +26,9 @@ const PUSHRM64_CASES: [Instruction; 2] = [
     Instruction {
         opcode: Opcode::PUSHRM64 {
             rm64: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: None,
-                displacement: None,
+                base: GeneralPurposeRegister::RAX,
+                index: None,
+                disp: None,
                 scale: None,
             },
         },
@@ -36,9 +36,9 @@ const PUSHRM64_CASES: [Instruction; 2] = [
     Instruction {
         opcode: Opcode::PUSHRM64 {
             rm64: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: Some(GeneralPurposeRegister::RBX),
-                displacement: Some(Displacement::DISP8(-4)),
+                base: GeneralPurposeRegister::RAX,
+                index: Some(GeneralPurposeRegister::RBX),
+                disp: Some(Displacement::DISP8(-4)),
                 scale: Some(4),
             },
         },

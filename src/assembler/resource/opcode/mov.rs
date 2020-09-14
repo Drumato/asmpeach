@@ -11,9 +11,9 @@ impl Opcode {
                     },
                     // movl %eax, -8(%ebp)
                     Operand::ADDRESSING {
-                        base_reg: _,
-                        index_reg: _,
-                        displacement: _,
+                        base: _,
+                        index: _,
+                        disp: _,
                         scale: _,
                     } => Opcode::MOVRM32R32 {
                         r32: src_gpr,
@@ -26,17 +26,17 @@ impl Opcode {
                     Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM32IMM32 { imm, rm32: dst },
                     // movl $3, -8(%ebp)
                     Operand::ADDRESSING {
-                        base_reg: _,
-                        index_reg: _,
-                        displacement: _,
+                        base: _,
+                        index: _,
+                        disp: _,
                         scale: _,
                     } => Opcode::MOVRM32IMM32 { imm, rm32: dst },
                     _ => unreachable!(),
                 },
                 Operand::ADDRESSING {
-                    base_reg: _,
-                    index_reg: _,
-                    displacement: _,
+                    base: _,
+                    index: _,
+                    disp: _,
                     scale: _,
                 } => match dst {
                     // movq -8(%rbp), %rax
@@ -57,9 +57,9 @@ impl Opcode {
                     },
                     // movq %rax, -8(%rbp)
                     Operand::ADDRESSING {
-                        base_reg: _,
-                        index_reg: _,
-                        displacement: _,
+                        base: _,
+                        index: _,
+                        disp: _,
                         scale: _,
                     } => Opcode::MOVRM64R64 {
                         r64: src_gpr,
@@ -72,17 +72,17 @@ impl Opcode {
                     Operand::GENERALREGISTER(_dst_gpr) => Opcode::MOVRM64IMM32 { imm, rm64: dst },
                     // movq $3, -8(%rbp)
                     Operand::ADDRESSING {
-                        base_reg: _,
-                        index_reg: _,
-                        displacement: _,
+                        base: _,
+                        index: _,
+                        disp: _,
                         scale: _,
                     } => Opcode::MOVRM64IMM32 { imm, rm64: dst },
                     _ => unreachable!(),
                 },
                 Operand::ADDRESSING {
-                    base_reg: _,
-                    index_reg: _,
-                    displacement: _,
+                    base: _,
+                    index: _,
+                    disp: _,
                     scale: _,
                 } => match dst {
                     // movq -8(%rbp), %rax

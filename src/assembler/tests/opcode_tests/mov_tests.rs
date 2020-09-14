@@ -11,9 +11,9 @@ const MOVRM8R8_CASES: [Instruction; 2] = [
     Instruction {
         opcode: Opcode::MOVRM8R8 {
             rm8: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::AL,
-                index_reg: None,
-                displacement: None,
+                base: GeneralPurposeRegister::AL,
+                index: None,
+                disp: None,
                 scale: None,
             },
             r8: GeneralPurposeRegister::BH,
@@ -32,9 +32,9 @@ const MOVRM64R64_CASES: [Instruction; 2] = [
     Instruction {
         opcode: Opcode::MOVRM64R64 {
             rm64: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: Some(GeneralPurposeRegister::RBX),
-                displacement: None,
+                base: GeneralPurposeRegister::RAX,
+                index: Some(GeneralPurposeRegister::RBX),
+                disp: None,
                 scale: Some(0x4),
             },
             r64: GeneralPurposeRegister::RCX,
@@ -47,9 +47,9 @@ const MOVR64RM64_CASES: [Instruction; 1] = [Instruction {
     opcode: Opcode::MOVR64RM64 {
         r64: GeneralPurposeRegister::RAX,
         rm64: Operand::ADDRESSING {
-            base_reg: GeneralPurposeRegister::RAX,
-            index_reg: None,
-            displacement: None,
+            base: GeneralPurposeRegister::RAX,
+            index: None,
+            disp: None,
             scale: None,
         },
     },
@@ -59,9 +59,9 @@ const MOVR64RM64_CASES: [Instruction; 1] = [Instruction {
 const MOVRM64IMM32_CASES: [Instruction; 1] = [Instruction {
     opcode: Opcode::MOVRM64IMM32 {
         rm64: Operand::ADDRESSING {
-            base_reg: GeneralPurposeRegister::RAX,
-            index_reg: None,
-            displacement: None,
+            base: GeneralPurposeRegister::RAX,
+            index: None,
+            disp: None,
             scale: None,
         },
         imm: Immediate::I32(60),

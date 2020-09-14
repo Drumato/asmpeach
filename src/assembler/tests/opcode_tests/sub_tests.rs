@@ -4,10 +4,10 @@ use crate::assembler::resource::*;
 const SUBRM64R64_CASES: [Instruction; 1] = [Instruction {
     opcode: Opcode::SUBRM64R64 {
         rm64: Operand::ADDRESSING {
-            base_reg: GeneralPurposeRegister::RAX,
-            index_reg: None,
+            base: GeneralPurposeRegister::RAX,
+            index: None,
             scale: None,
-            displacement: None,
+            disp: None,
         },
         r64: GeneralPurposeRegister::RBX,
     },
@@ -18,10 +18,10 @@ const SUBR64RM64_CASES: [Instruction; 1] = [Instruction {
     opcode: Opcode::SUBR64RM64 {
         r64: GeneralPurposeRegister::RBX,
         rm64: Operand::ADDRESSING {
-            base_reg: GeneralPurposeRegister::RAX,
-            index_reg: None,
+            base: GeneralPurposeRegister::RAX,
+            index: None,
             scale: None,
-            displacement: None,
+            disp: None,
         },
     },
 }];

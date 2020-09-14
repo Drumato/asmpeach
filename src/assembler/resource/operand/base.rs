@@ -16,9 +16,9 @@ pub enum Operand {
     /// memory addressing
     /// ex. [rax], -4[rbp]
     ADDRESSING {
-        base_reg: GeneralPurposeRegister,
-        index_reg: Option<GeneralPurposeRegister>,
-        displacement: Option<Displacement>,
+        base: GeneralPurposeRegister,
+        index: Option<GeneralPurposeRegister>,
+        disp: Option<Displacement>,
         scale: Option<u8>,
     },
 
@@ -42,9 +42,9 @@ impl Operand {
     pub fn is_addressing(&self) -> bool {
         match self {
             Operand::ADDRESSING {
-                base_reg: _,
-                index_reg: _,
-                displacement: _,
+                base: _,
+                index: _,
+                disp: _,
                 scale: _,
             } => true,
             _ => false,
@@ -55,9 +55,9 @@ impl Operand {
     pub fn is_expanded(&self) -> bool {
         match self {
             Operand::ADDRESSING {
-                base_reg,
-                index_reg: _,
-                displacement: _,
+                base: base_reg,
+                index: _,
+                disp: _,
                 scale: _,
             } => base_reg.is_expanded(),
             Operand::GENERALREGISTER(gpr) => gpr.is_expanded(),
@@ -69,9 +69,9 @@ impl Operand {
     pub fn index_reg_is_expanded(&self) -> bool {
         match self {
             Operand::ADDRESSING {
-                base_reg: _,
-                index_reg,
-                displacement: _,
+                base: _,
+                index: index_reg,
+                disp: _,
                 scale: _,
             } => {
                 if index_reg.is_none() {
@@ -133,9 +133,9 @@ impl Operand {
     pub fn req_sib_byte(&self) -> bool {
         match self {
             Operand::ADDRESSING {
-                base_reg: _,
-                index_reg,
-                displacement: _,
+                base: _,
+                index: index_reg,
+                disp: _,
                 scale: _,
             } => index_reg.is_some(),
 
@@ -149,9 +149,9 @@ impl Operand {
         match self {
             Self::GENERALREGISTER(reg) => reg.number(),
             Self::ADDRESSING {
-                base_reg,
-                index_reg: _,
-                displacement: _,
+                base: base_reg,
+                index: _,
+                disp: _,
                 scale: _,
             } => base_reg.number(),
             _ => panic!("cannot get register-number from {:?}", self),
@@ -162,9 +162,9 @@ impl Operand {
     pub fn addressing_mode(&self) -> AddressingMode {
         match self {
             Operand::ADDRESSING {
-                base_reg: _,
-                index_reg: _,
-                displacement,
+                base: _,
+                index: _,
+                disp: displacement,
                 scale: _,
             } => {
                 if displacement.is_none() {
@@ -194,9 +194,9 @@ impl Operand {
     ) {
         match self {
             Operand::ADDRESSING {
-                base_reg,
-                index_reg,
-                displacement,
+                base: base_reg,
+                index: index_reg,
+                disp: displacement,
                 scale,
             } => (*base_reg, *index_reg, *displacement, *scale),
             _ => panic!(
@@ -211,9 +211,9 @@ impl Operand {
             Operand::Immediate(imm) => imm.to_intel_string(),
             Operand::LABEL(s) => s.to_string(),
             Operand::ADDRESSING {
-                base_reg,
-                index_reg,
-                displacement,
+                base: base_reg,
+                index: index_reg,
+                disp: displacement,
                 scale,
             } => {
                 let size_ptr = match base_reg.size() {
@@ -249,9 +249,9 @@ impl Operand {
             Operand::Immediate(imm) => imm.to_at_string(),
             Operand::LABEL(s) => s.to_string(),
             Operand::ADDRESSING {
-                base_reg,
-                index_reg,
-                displacement,
+                base: base_reg,
+                index: index_reg,
+                disp: displacement,
                 scale,
             } => {
                 let disp_str = if displacement.is_some() {
@@ -279,17 +279,17 @@ impl Operand {
             Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_8bit()),
             Operand::Immediate(imm) => Operand::Immediate(imm.as_8bit()),
             Operand::ADDRESSING {
-                base_reg: b,
-                index_reg: i,
-                displacement: d,
+                base: b,
+                index: i,
+                disp: d,
                 scale: s,
             } => Operand::ADDRESSING {
-                base_reg: b.to_8bit(),
-                index_reg: match i {
+                base: b.to_8bit(),
+                index: match i {
                     Some(ireg) => Some(ireg.to_8bit()),
                     None => None,
                 },
-                displacement: *d,
+                disp: *d,
                 scale: *s,
             },
             Operand::LABEL(_label) => unreachable!(),
@@ -300,17 +300,17 @@ impl Operand {
             Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_16bit()),
             Operand::Immediate(imm) => Operand::Immediate(imm.as_16bit()),
             Operand::ADDRESSING {
-                base_reg: b,
-                index_reg: i,
-                displacement: d,
+                base: b,
+                index: i,
+                disp: d,
                 scale: s,
             } => Operand::ADDRESSING {
-                base_reg: b.to_16bit(),
-                index_reg: match i {
+                base: b.to_16bit(),
+                index: match i {
                     Some(ireg) => Some(ireg.to_16bit()),
                     None => None,
                 },
-                displacement: *d,
+                disp: *d,
                 scale: *s,
             },
             Operand::LABEL(_label) => unreachable!(),
@@ -321,17 +321,17 @@ impl Operand {
             Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_32bit()),
             Operand::Immediate(imm) => Operand::Immediate(imm.as_32bit()),
             Operand::ADDRESSING {
-                base_reg: b,
-                index_reg: i,
-                displacement: d,
+                base: b,
+                index: i,
+                disp: d,
                 scale: s,
             } => Operand::ADDRESSING {
-                base_reg: b.to_32bit(),
-                index_reg: match i {
+                base: b.to_32bit(),
+                index: match i {
                     Some(ireg) => Some(ireg.to_32bit()),
                     None => None,
                 },
-                displacement: *d,
+                disp: *d,
                 scale: *s,
             },
             Operand::LABEL(_label) => unreachable!(),
@@ -343,17 +343,17 @@ impl Operand {
             Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_64bit()),
             Operand::Immediate(imm) => Operand::Immediate(imm.as_32bit()),
             Operand::ADDRESSING {
-                base_reg: b,
-                index_reg: i,
-                displacement: d,
+                base: b,
+                index: i,
+                disp: d,
                 scale: s,
             } => Operand::ADDRESSING {
-                base_reg: b.to_64bit(),
-                index_reg: match i {
+                base: b.to_64bit(),
+                index: match i {
                     Some(ireg) => Some(ireg.to_64bit()),
                     None => None,
                 },
-                displacement: *d,
+                disp: *d,
                 scale: *s,
             },
             Operand::LABEL(_label) => unreachable!(),
@@ -369,9 +369,9 @@ impl Operand {
                 RegisterSize::S64 => OperandSize::QWORD,
             },
             Operand::ADDRESSING {
-                base_reg,
-                index_reg: _,
-                displacement: _,
+                base: base_reg,
+                index: _,
+                disp: _,
                 scale: _,
             } => match base_reg.size() {
                 RegisterSize::S8 => OperandSize::BYTE,

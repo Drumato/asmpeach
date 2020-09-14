@@ -4,9 +4,9 @@ impl Opcode {
         match size {
             OperandSize::QWORD => match src {
                 Operand::ADDRESSING {
-                    base_reg: _,
-                    index_reg: _,
-                    displacement: _,
+                    base: _,
+                    index: _,
+                    disp: _,
                     scale: _,
                 } => match dst {
                     // leaq -8(%rbp), %rax

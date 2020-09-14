@@ -5,9 +5,9 @@ const IMULR64RM64: [Instruction; 1] = [Instruction {
     opcode: Opcode::IMULR64RM64 {
         r64: GeneralPurposeRegister::R12,
         rm64: Operand::ADDRESSING {
-            base_reg: GeneralPurposeRegister::RBP,
-            index_reg: None,
-            displacement: Some(Displacement::DISP8(-16)),
+            base: GeneralPurposeRegister::RBP,
+            index: None,
+            disp: Some(Displacement::DISP8(-16)),
             scale: None,
         },
     },

@@ -4,9 +4,9 @@ use crate::assembler::resource::*;
 const IDIVRM64: [Instruction; 1] = [Instruction {
     opcode: Opcode::IDIVRM64 {
         rm64: Operand::ADDRESSING {
-            base_reg: GeneralPurposeRegister::RAX,
-            index_reg: None,
-            displacement: None,
+            base: GeneralPurposeRegister::RAX,
+            index: None,
+            disp: None,
             scale: None,
         },
     },

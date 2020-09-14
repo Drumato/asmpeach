@@ -41,6 +41,16 @@ impl REXPrefix {
         )
     }
 
+    pub fn new_rm(        is_64bit: bool,
+                          reg: &GeneralPurposeRegister,
+                          rm: &Operand) -> Self{
+        Self::new(
+            is_64bit,
+            reg.is_expanded(),
+            rm.index_reg_is_expanded(),
+            rm.is_expanded()
+        )
+    }
     pub fn new_from_mem_and_reg(
         is_64bit: bool,
         reg: &GeneralPurposeRegister,

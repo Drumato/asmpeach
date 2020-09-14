@@ -21,9 +21,9 @@ use x64_asm;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{
     // you can pass a file(or string).
-    let elf_builder = x64_asm::assemble_file("asm.s", "obj.o", x64_asm::Syntax::ATANDT)?;
+    let elf_builder = x64_asm::assemble_file("asm.s", x64_asm::Syntax::ATANDT)?;
     
-    elf_builder.generate_elf_file(0o644);
+    elf_builder.generate_elf_file("obj.o")?;
 
     Ok(())
 }

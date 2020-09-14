@@ -7,10 +7,10 @@ impl Opcode {
                 Operand::GENERALREGISTER(src_gpr) => match dst {
                     // add -8[ebp], eax
                     Operand::ADDRESSING {
-                        base_reg: _,
-                        index_reg: _,
+                        base: _,
+                        index: _,
                         scale: _,
-                        displacement: _,
+                        disp: _,
                     } => Opcode::ADDRM32R32 {
                         rm32: dst,
                         r32: src_gpr,
@@ -28,15 +28,22 @@ impl Opcode {
                 Operand::GENERALREGISTER(src_gpr) => match dst {
                     // add -8[rbp], rax
                     Operand::ADDRESSING {
-                        base_reg: _,
-                        index_reg: _,
+                        base: _,
+                        index: _,
                         scale: _,
-                        displacement: _,
+                        disp: _,
                     } => Opcode::ADDRM64R64 {
                         rm64: dst,
                         r64: src_gpr,
                     },
                     // add rax, rbx
+                    Operand::GENERALREGISTER(dst_gpr) => Opcode::ADDR64RM64 {
+                        r64: dst_gpr,
+                        rm64: src,
+                    },
+                    _ => unreachable!(),
+                },
+                Operand::ADDRESSING { base: _, index: _, disp: _, scale:_ } => match dst{
                     Operand::GENERALREGISTER(dst_gpr) => Opcode::ADDR64RM64 {
                         r64: dst_gpr,
                         rm64: src,

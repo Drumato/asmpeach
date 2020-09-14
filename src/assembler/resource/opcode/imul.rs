@@ -8,10 +8,10 @@ impl Opcode {
                     _ => unreachable!(),
                 },
                 Operand::ADDRESSING {
-                    base_reg: _,
-                    index_reg: _,
+                    base: _,
+                    index: _,
                     scale: _,
-                    displacement: _,
+                    disp: _,
                 } => match dst {
                     // imul -8[rbp], rax
                     Operand::GENERALREGISTER(dst_gpr) => Opcode::IMULR64RM64 {

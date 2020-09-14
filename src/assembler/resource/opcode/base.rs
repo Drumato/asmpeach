@@ -283,7 +283,11 @@ impl Opcode {
                 Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
             }
             Opcode::ADDR64RM64 { r64, rm64 } => {
-                Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
+                Some(REXPrefix::new_rm(
+                    true,
+                    r64,
+                    rm64,
+                ))
             }
 
             // Convert Word to Doubleword/Convert Doubleword to Quadword
@@ -293,11 +297,10 @@ impl Opcode {
             Opcode::CMPRAXIMM32 { imm: _ } => Some(REXPrefix::new(true, false, false, false)),
 
             // (signed) Integer Multiply
-            Opcode::IMULR64RM64 { r64, rm64 } => Some(REXPrefix::new(
+            Opcode::IMULR64RM64 { r64, rm64 } => Some(REXPrefix::new_rm(
                 true,
-                r64.is_expanded(),
-                rm64.index_reg_is_expanded(),
-                rm64.is_expanded(),
+                r64,
+                rm64,
             )),
 
             // (signed) Integer Divide

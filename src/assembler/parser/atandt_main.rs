@@ -266,9 +266,9 @@ impl Context {
         };
 
         Operand::ADDRESSING {
-            index_reg,
-            base_reg,
-            displacement,
+            index: index_reg,
+            base: base_reg,
+            disp: displacement,
             scale,
         }
     }
@@ -405,9 +405,9 @@ mod parse_tests {
             Opcode::MOVRM64IMM32 {
                 imm: Immediate::I32(3),
                 rm64: Operand::ADDRESSING {
-                    base_reg: GeneralPurposeRegister::RBP,
-                    index_reg: None,
-                    displacement: Some(Displacement::DISP8(-24)),
+                    base: GeneralPurposeRegister::RBP,
+                    index: None,
+                    disp: Some(Displacement::DISP8(-24)),
                     scale: None,
                 },
             },
@@ -445,36 +445,36 @@ mod parse_tests {
         );
         assert_eq!(
             Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: None,
-                displacement: None,
+                base: GeneralPurposeRegister::RAX,
+                index: None,
+                disp: None,
                 scale: None,
             },
             Context::parse_operand("(%rax)"),
         );
         assert_eq!(
             Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: None,
-                displacement: Some(Displacement::DISP8(-8)),
+                base: GeneralPurposeRegister::RAX,
+                index: None,
+                disp: Some(Displacement::DISP8(-8)),
                 scale: None,
             },
             Context::parse_operand("-8(%rax)"),
         );
         assert_eq!(
             Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: Some(GeneralPurposeRegister::RBX),
-                displacement: Some(Displacement::DISP8(-8)),
+                base: GeneralPurposeRegister::RAX,
+                index: Some(GeneralPurposeRegister::RBX),
+                disp: Some(Displacement::DISP8(-8)),
                 scale: None,
             },
             Context::parse_operand("-8(%rax, %rbx)"),
         );
         assert_eq!(
             Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: Some(GeneralPurposeRegister::RBX),
-                displacement: Some(Displacement::DISP8(16)),
+                base: GeneralPurposeRegister::RAX,
+                index: Some(GeneralPurposeRegister::RBX),
+                disp: Some(Displacement::DISP8(16)),
                 scale: Some(4),
             },
             Context::parse_operand("16(%rax, %rbx, 4)"),

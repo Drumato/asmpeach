@@ -7,10 +7,10 @@ impl Opcode {
                 Operand::GENERALREGISTER(src_gpr) => match dst {
                     // subq %rax, -8(%rbp)
                     Operand::ADDRESSING {
-                        base_reg: _,
-                        index_reg: _,
+                        base: _,
+                        index: _,
                         scale: _,
-                        displacement: _,
+                        disp: _,
                     } => Opcode::SUBRM64R64 {
                         rm64: dst,
                         r64: src_gpr,

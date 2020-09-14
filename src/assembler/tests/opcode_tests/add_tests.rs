@@ -11,10 +11,10 @@ const ADDRM64R64_CASES: [Instruction; 2] = [
     Instruction {
         opcode: Opcode::ADDRM64R64 {
             rm64: Operand::ADDRESSING {
-                base_reg: GeneralPurposeRegister::RAX,
-                index_reg: None,
+                base: GeneralPurposeRegister::RAX,
+                index: None,
                 scale: None,
-                displacement: None,
+                disp: None,
             },
             r64: GeneralPurposeRegister::RBX,
         },
