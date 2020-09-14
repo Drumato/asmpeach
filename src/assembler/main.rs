@@ -4,12 +4,12 @@ use crate::assembler::{
 };
 use std::fs;
 
-type ELFOrError = Result<ELFBuilder, Box<dyn std::error::Error>>;
+type ELFOrError = Result<elf_utilities::file::ELF64Dumper, Box<dyn std::error::Error>>;
 
 /// translate assembly file into object file
-pub fn assemble_file(input_file: &str, output_file: &str, syntax: Syntax) -> ELFOrError {
+pub fn assemble_file(input_file: &str, syntax: Syntax) -> ELFOrError {
     let source = fs::read_to_string(input_file)?;
-    assemble(source, output_file, syntax)
+    assemble(source, syntax)
 }
 
 /// translate assembly code into object file.
@@ -28,14 +28,14 @@ pub fn assemble_file(input_file: &str, output_file: &str, syntax: Syntax) -> ELF
 ///     popq %rbp
 ///     ret"
 ///     .to_string();
-/// let elf_builder = assemble_code(s, "obj.o", Syntax::ATANDT).unwrap();
-/// elf_builder.generate_elf_file(0o644);
+/// let elf_builder = assemble_code(s, Syntax::ATANDT).unwrap();
+/// elf_builder.generate_elf_file("obj.o");
 /// ```
-pub fn assemble_code(assembly_code: String, output_file: &str, syntax: Syntax) -> ELFOrError {
-    assemble(assembly_code, output_file, syntax)
+pub fn assemble_code(assembly_code: String, syntax: Syntax) -> ELFOrError {
+    assemble(assembly_code, syntax)
 }
 
-fn assemble(source: String, output_file: &str, syntax: Syntax) -> ELFOrError {
+fn assemble(source: String, syntax: Syntax) -> ELFOrError {
     let mut symbols = match syntax {
         Syntax::INTEL => unimplemented!(),
         Syntax::ATANDT => parser::parse_atandt(source),
@@ -47,7 +47,7 @@ fn assemble(source: String, output_file: &str, syntax: Syntax) -> ELFOrError {
     // 再配置テーブルを探索して，シンボルテーブル内に該当するエントリがあれば再配置シンボルを更新する
     generator::setup_relocation(&symbols, &mut reloc_syms);
 
-    let mut builder = ELFBuilder::new(output_file.to_string());
+    let mut builder = ELFBuilder::new();
 
     // (NULL) セクション
     builder.add_section(elf_utilities::section::Section64::new_null_section());
@@ -69,5 +69,5 @@ fn assemble(source: String, output_file: &str, syntax: Syntax) -> ELFOrError {
     // ヘッダの調整
     builder.condition_elf_header();
 
-    Ok(builder)
+    Ok(elf_utilities::file::ELF64Dumper::new(builder.give_file(), 0o644))
 }

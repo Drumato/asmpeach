@@ -51,8 +51,8 @@ mod integration_tests {
         let output_file = format!("/tmp/{}.o", file_base);
         let binary_path = format!("./{}", file_base);
         let elf_builder =
-            x64_asm::assemble_file(&input_file, &output_file, x64_asm::Syntax::ATANDT).unwrap();
-        elf_builder.generate_elf_file(0o644);
+            x64_asm::assemble_file(&input_file, x64_asm::Syntax::ATANDT).unwrap();
+        elf_builder.generate_elf_file(&output_file).unwrap();
 
         let _compile_cmd = Command::new("gcc")
             .arg(&output_file)
