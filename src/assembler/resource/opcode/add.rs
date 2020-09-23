@@ -43,7 +43,12 @@ impl Opcode {
                     },
                     _ => unreachable!(),
                 },
-                Operand::ADDRESSING { base: _, index: _, disp: _, scale:_ } => match dst{
+                Operand::ADDRESSING {
+                    base: _,
+                    index: _,
+                    disp: _,
+                    scale: _,
+                } => match dst {
                     Operand::GENERALREGISTER(dst_gpr) => Opcode::ADDR64RM64 {
                         r64: dst_gpr,
                         rm64: src,

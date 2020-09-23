@@ -30,58 +30,6 @@ const ADDR64RM64_CASES: [Instruction; 1] = [Instruction {
 }];
 
 #[cfg(test)]
-mod to_intel_tests {
-    use super::*;
-
-    #[test]
-    fn addrm64r64_test() {
-        // add rax, rbx
-        let inst = &ADDRM64R64_CASES[0];
-
-        assert_eq!(inst.to_intel_string(), "add rax, rbx");
-
-        // add QWORD PTR [rax], rbx
-        let inst = &ADDRM64R64_CASES[1];
-
-        assert_eq!(inst.to_intel_string(), "add QWORD PTR [rax], rbx");
-    }
-
-    #[test]
-    fn addr64rm64_test() {
-        // add rax, rbx
-        let inst = &ADDR64RM64_CASES[0];
-
-        assert_eq!(inst.to_intel_string(), "add rax, rbx");
-    }
-}
-
-#[cfg(test)]
-mod to_at_tests {
-    use super::*;
-
-    #[test]
-    fn addrm64r64_test() {
-        // add rax, rbx
-        let inst = &ADDRM64R64_CASES[0];
-
-        assert_eq!(inst.to_at_string(), "addq %rbx, %rax");
-
-        // add QWORD PTR [rax], rbx
-        let inst = &ADDRM64R64_CASES[1];
-
-        assert_eq!(inst.to_at_string(), "addq %rbx, (%rax)");
-    }
-
-    #[test]
-    fn addr64rm64_test() {
-        // add rax, rbx
-        let inst = &ADDR64RM64_CASES[0];
-
-        assert_eq!(inst.to_at_string(), "addq %rbx, %rax");
-    }
-}
-
-#[cfg(test)]
 mod to_bytes_tests {
     use super::*;
 

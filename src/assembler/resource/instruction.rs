@@ -36,14 +36,4 @@ impl Instruction {
         }
         codes
     }
-
-    /// to Intel syntax.
-    pub fn to_intel_string(&self) -> String {
-        self.opcode.to_intel_string()
-    }
-
-    /// to AT&T syntax.
-    pub fn to_at_string(&self) -> String {
-        self.opcode.to_at_string()
-    }
 }

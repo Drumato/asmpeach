@@ -1,7 +1,11 @@
 use crate::assembler::resource::{Group, Opcode, RelaSymbol, Symbol};
 use indexmap::map::IndexMap;
 
-type OffsetForRelativeJump = IndexMap<String, (isize, isize)>;
+#[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone)]
+struct RelativeJumpSpec {
+    operand_offset: isize,
+    address: isize,
+}
 
 pub fn generate_main(symbols: &mut IndexMap<String, Symbol>) -> IndexMap<String, Vec<RelaSymbol>> {
     let mut reloc_syms = IndexMap::new();
@@ -27,7 +31,7 @@ pub fn generate_main(symbols: &mut IndexMap<String, Symbol>) -> IndexMap<String,
     reloc_syms
 }
 
-fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, OffsetForRelativeJump, Vec<RelaSymbol>) {
+fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>,  IndexMap<String, Vec<RelativeJumpSpec>>, Vec<RelaSymbol>) {
     let mut relative_jump_offset = IndexMap::new();
     let mut code_offset = 0;
 
@@ -43,27 +47,35 @@ fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, OffsetForRelativeJump, Vec<RelaSym
         // グループ内の再配置情報を合成
         relocations.append(&mut relocs_in_group)
     }
-
     (symbol_codes, relative_jump_offset, relocations)
 }
 
 fn gen_group_code(
     code_offset: &mut isize,
     group: &Group,
-    relative_jump_offset: &mut OffsetForRelativeJump,
+    relative_jump_offset: &mut IndexMap<String, Vec<RelativeJumpSpec>>,
 ) -> (Vec<u8>, Vec<RelaSymbol>) {
     let mut codes_in_group = Vec::new();
     let mut relocs_in_group = Vec::new();
 
     // jump系命令がラベルの前に存在した場合
-    if let Some(tup) = relative_jump_offset.get_mut(&group.label) {
-        // ラベルまでのバイト数 - ジャンプの位置 - 1 => 相対オフセット
-        tup.1 = *code_offset - tup.1 - 1;
+    if let Some(specs) = relative_jump_offset.get_mut(&group.label) {
+        for spec in specs {
+            // ラベルまでのバイト数 - ジャンプ命令の位置 => 相対オフセット
+            // operand部までのオフセットから求めるため, -1する
+            spec.address = *code_offset - spec.operand_offset - 4;
+        }
     } else {
         // ラベルがjump系命令の前に存在した場合
         if !group.label.ends_with("_entry") {
             // ラベルの位置を保存しておく
-            relative_jump_offset.insert(group.label.to_string(), (0, *code_offset));
+            relative_jump_offset.insert(
+                group.label.to_string(),
+                vec![RelativeJumpSpec {
+                    operand_offset: 0,
+                    address: *code_offset,
+                }],
+            );
         }
     }
 
@@ -84,19 +96,32 @@ fn gen_group_code(
                 // 適当なアドレスを生成しておく．
                 vec![0xe8, 0x00, 0x00, 0x00, 0x00]
             }
+
             // jump
             Opcode::JELABEL { label } => {
+                // オペランド部はオペコード分,2バイト+した場所にある
                 let length = *code_offset + 2;
 
-                if let Some(tup) = relative_jump_offset.get_mut(label) {
-                    // ラベルがjump系命令の前に存在した場合
-                    tup.0 = length;
-                    tup.1 = !(length + 4 - tup.1) + 1;
+                if let Some(specs) = relative_jump_offset.get_mut(label) {
+                    specs.push(RelativeJumpSpec {
+                        operand_offset: length,
+                        address: length,
+                    });
+
+                    for spec in specs {
+                        // ラベルがjump系命令の前に存在した場合
+                        // ラベル位置とjumpのオペランド部の差分を計算する.
+                        spec.address = length - spec.address - 3;
+                    }
                 } else {
                     // jump系命令がラベルの前に存在した場合
-                    if !group.label.ends_with("_entry") {
-                        relative_jump_offset.insert(label.to_string(), (length, length + 3));
-                    }
+                    relative_jump_offset.insert(
+                        label.to_string(),
+                        vec![RelativeJumpSpec {
+                            operand_offset: length,
+                            address: length,
+                        }],
+                    );
                 }
 
                 let mut base_bytes = inst.to_bytes();
@@ -105,17 +130,29 @@ fn gen_group_code(
                 base_bytes
             }
             Opcode::JMPLABEL { label } => {
+                // オペランド部はオペコード分,1バイト+した場所にある
                 let length = *code_offset + 1;
+                if let Some(specs) = relative_jump_offset.get_mut(label) {
+                    specs.push(RelativeJumpSpec {
+                        operand_offset: length,
+                        address: length,
+                    });
 
-                if let Some(tup) = relative_jump_offset.get_mut(label) {
-                    // ラベルがjump系命令の前に存在した場合
-                    tup.0 = length;
-                    tup.1 = !(length + 4 - tup.1) + 1;
-                } else {
-                    // jump系命令がラベルの前に存在した場合
-                    if !group.label.ends_with("_entry") {
-                        relative_jump_offset.insert(label.to_string(), (length, length + 3));
+                    for spec in specs {
+                        // ラベルがjump系命令の前に存在した場合
+                        // ラベル位置とjumpのオペランド部の差分を計算する.
+                        spec.address = length - spec.address - 3;
                     }
+                } else {
+
+                    // jump系命令がラベルの前に存在した場合
+                    relative_jump_offset.insert(
+                        label.to_string(),
+                        vec![RelativeJumpSpec {
+                            operand_offset: length,
+                            address: length,
+                        }],
+                    );
                 }
 
                 let mut base_bytes = inst.to_bytes();
@@ -134,14 +171,20 @@ fn gen_group_code(
     (codes_in_group, relocs_in_group)
 }
 
-/// 相対ジャンプを解決する
+/// 0パディングされたjumpのオフセットを更新する.
 fn resolve_relative_offset_jump(
     sym_codes: &mut Vec<u8>,
-    relative_jump_offset: &OffsetForRelativeJump,
+    relative_jump_offset: &IndexMap<String, Vec<RelativeJumpSpec>>,
 ) {
-    for (_name, (dst, offset)) in relative_jump_offset.iter() {
-        for (idx, byte) in (*offset as u32).to_le_bytes().iter().enumerate() {
-            sym_codes[idx + *dst as usize] = *byte;
+    for (name, specs) in relative_jump_offset.iter() {
+        if name.ends_with("_entry") {
+            continue;
+        }
+
+        for spec in specs{
+            for (idx, addr) in (spec.address as u32).to_le_bytes().iter().enumerate() {
+                sym_codes[idx + spec.operand_offset as usize] = *addr;
+            }
         }
     }
 }

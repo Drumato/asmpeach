@@ -1,10 +1,10 @@
+use crate::assembler::resource::{RelaSymbol, Symbol};
 use crate::assembler::{
     generator, parser,
     resource::{ELFBuilder, Syntax},
 };
-use std::fs;
 use indexmap::map::IndexMap;
-use crate::assembler::resource::{Symbol, RelaSymbol};
+use std::fs;
 
 type ELFOrError = Result<elf_utilities::file::ELF64Dumper, Box<dyn std::error::Error>>;
 
@@ -77,7 +77,7 @@ fn assemble(source: String, syntax: Syntax) -> ELFOrError {
     ))
 }
 
-impl ELFBuilder{
+impl ELFBuilder {
     fn add_text_section(&mut self, symbols: &IndexMap<String, Symbol>) {
         // すべてのシンボルのコードを結合する
         let mut all_symbol_codes: Vec<u8> = Vec::new();
@@ -280,7 +280,6 @@ impl ELFBuilder{
         shdr.set_type(elf_utilities::section::TYPE::NULL);
         shdr
     }
-
 
     fn create_global_symbol(
         &self,

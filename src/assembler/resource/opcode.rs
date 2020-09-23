@@ -5,6 +5,8 @@ mod add;
 pub use add::*;
 mod call;
 pub use call::*;
+mod cmp;
+pub use cmp::*;
 mod mov;
 pub use mov::*;
 mod push;

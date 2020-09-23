@@ -40,6 +40,8 @@ pub enum Opcode {
     CQO,
 
     // Compare Two Operands
+    /// Compare imm32 with r/m64
+    CMPRM64IMM32 { imm: Immediate, rm64: Operand },
     /// Compare imm32 with RAX.
     CMPRAXIMM32 { imm: Immediate },
 
@@ -182,6 +184,7 @@ impl Opcode {
             Opcode::CWD => vec![0x66, 0x99],
             Opcode::CDQ | Opcode::CQO => vec![0x99],
 
+            Opcode::CMPRM64IMM32 { imm: _, rm64: _ } => vec![0x81],
             Opcode::CMPRAXIMM32 { imm: _ } => vec![0x3d],
 
             Opcode::ENDBR64 => vec![0xf3, 0x0f, 0x1e, 0xfa],
@@ -246,6 +249,7 @@ impl Opcode {
             Opcode::ADDR64RM64 { r64: _, rm64: _ } => Encoding::RM,
             Opcode::CALLFUNC(_func) => unimplemented!(),
             Opcode::CWD | Opcode::CDQ | Opcode::CQO => Encoding::ZO,
+            Opcode::CMPRM64IMM32 { imm: _, rm64: _ } => Encoding::MI,
             Opcode::CMPRAXIMM32 { imm: _ } => Encoding::I,
             Opcode::ENDBR64 => Encoding::ZO,
             Opcode::IDIVRM64 { rm64: _ } => Encoding::M,
@@ -282,26 +286,17 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64, r64 } => {
                 Some(REXPrefix::new_from_mem_and_reg(true, r64, rm64))
             }
-            Opcode::ADDR64RM64 { r64, rm64 } => {
-                Some(REXPrefix::new_rm(
-                    true,
-                    r64,
-                    rm64,
-                ))
-            }
+            Opcode::ADDR64RM64 { r64, rm64 } => Some(REXPrefix::new_rm(r64, rm64)),
 
             // Convert Word to Doubleword/Convert Doubleword to Quadword
             Opcode::CQO => Some(REXPrefix::new(true, false, false, false)),
 
             // Compare Two Operands
+            Opcode::CMPRM64IMM32 { imm: _, rm64 } => Some(REXPrefix::new_mi(rm64)),
             Opcode::CMPRAXIMM32 { imm: _ } => Some(REXPrefix::new(true, false, false, false)),
 
             // (signed) Integer Multiply
-            Opcode::IMULR64RM64 { r64, rm64 } => Some(REXPrefix::new_rm(
-                true,
-                r64,
-                rm64,
-            )),
+            Opcode::IMULR64RM64 { r64, rm64 } => Some(REXPrefix::new_rm(r64, rm64)),
 
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64 } => Some(REXPrefix::new_from_mem(true, rm64)),
@@ -330,12 +325,7 @@ impl Opcode {
                 rm64.index_reg_is_expanded(),
                 rm64.is_expanded(),
             )),
-            Opcode::MOVRM64IMM32 { rm64, imm: _ } => Some(REXPrefix::new(
-                true,
-                false,
-                rm64.req_sib_byte() && rm64.index_reg_is_expanded(),
-                rm64.is_expanded(),
-            )),
+            Opcode::MOVRM64IMM32 { rm64, imm: _ } => Some(REXPrefix::new_mi(rm64)),
 
             // Neg
             Opcode::NEGRM64 { rm64 } => Some(REXPrefix::new_from_mem(true, rm64)),
@@ -393,6 +383,15 @@ impl Opcode {
                 Some(ModRM::new_rm(rm64.addressing_mode(), r64, rm64))
             }
 
+            // Compare
+            Opcode::CMPRM64IMM32 { imm: _, rm64 } => {
+                // MIだけど /7 でマスク
+                Some(ModRM::new_mr(
+                    rm64.addressing_mode(),
+                    rm64,
+                    &GeneralPurposeRegister::new_64bit_from_code(7),
+                ))
+            }
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64 } => {
                 // Mだけど /7 でマスク
@@ -507,6 +506,9 @@ impl Opcode {
             Opcode::ADDRM64R64 { rm64, r64: _ } => rm64.get_displacement(),
             Opcode::ADDR64RM64 { r64: _, rm64 } => rm64.get_displacement(),
 
+            // Compare
+            Opcode::CMPRM64IMM32 { imm: _, rm64 } => rm64.get_displacement(),
+
             // (signed) Integer Divide
             Opcode::IDIVRM64 { rm64 } => rm64.get_displacement(),
 
@@ -547,6 +549,7 @@ impl Opcode {
     pub fn get_immediate(&self) -> Option<Immediate> {
         match &self {
             // Compare Two Operands
+            Opcode::CMPRM64IMM32 { imm, rm64: _ } => Some(*imm),
             Opcode::CMPRAXIMM32 { imm } => Some(*imm),
 
             // Move
@@ -598,365 +601,6 @@ impl Opcode {
             Opcode::SUBR64RM64 { r64: _, rm64 } => rm64.sib_byte(),
 
             _ => None,
-        }
-    }
-
-    /// to Intel syntax.
-    pub fn to_intel_string(&self) -> String {
-        match &self {
-            Opcode::CWD
-            | Opcode::CDQ
-            | Opcode::CQO
-            | Opcode::ENDBR64
-            | Opcode::RET
-            | Opcode::SYSCALL => self.opcode_to_intel().to_string(),
-            Opcode::CALLFUNC(func) => {
-                format!("{} {}", self.opcode_to_intel(), func.to_intel_string())
-            }
-            Opcode::CMPRAXIMM32 { imm } => {
-                format!("{} rax, {}", self.opcode_to_intel(), imm.to_intel_string())
-            }
-            Opcode::JMPLABEL { label } => format!("{} {}", self.opcode_to_intel(), label),
-            Opcode::JELABEL { label } => format!("{} {}", self.opcode_to_intel(), label),
-            Opcode::LEAR64M { r64, m } => format!(
-                "{} {}, {}",
-                self.opcode_to_intel(),
-                r64.to_intel_string(),
-                m.to_intel_string()
-            ),
-
-            // r64
-            Opcode::POPR64 { r64 } | Opcode::PUSHR64 { r64 } => {
-                format!("{} {}", self.opcode_to_intel(), r64.to_intel_string())
-            }
-
-            // imm32
-            Opcode::PUSHIMM32 { imm } => {
-                format!("{} {}", self.opcode_to_intel(), imm.to_intel_string())
-            }
-
-            // r/m64
-            Opcode::IDIVRM64 { rm64 }
-            | Opcode::INCRM64 { rm64 }
-            | Opcode::PUSHRM64 { rm64 }
-            | Opcode::NEGRM64 { rm64 } => {
-                format!("{} {}", self.opcode_to_intel(), rm64.to_intel_string())
-            }
-
-            // r32, r/m32
-            Opcode::ADDR32RM32 { r32, rm32 } | Opcode::MOVR32RM32 { r32, rm32 } => format!(
-                "{} {}, {}",
-                self.opcode_to_intel(),
-                r32.to_intel_string(),
-                rm32.to_intel_string()
-            ),
-
-            // r64, r/m64
-            Opcode::ADDR64RM64 { r64, rm64 }
-            | Opcode::IMULR64RM64 { r64, rm64 }
-            | Opcode::SUBR64RM64 { r64, rm64 }
-            | Opcode::MOVR64RM64 { r64, rm64 } => format!(
-                "{} {}, {}",
-                self.opcode_to_intel(),
-                r64.to_intel_string(),
-                rm64.to_intel_string()
-            ),
-
-            // r/m8, r8
-            Opcode::MOVRM8R8 { rm8, r8 } => format!(
-                "{} {}, {}",
-                self.opcode_to_intel(),
-                rm8.to_intel_string(),
-                r8.to_intel_string()
-            ),
-
-            // r/m32, r32
-            Opcode::ADDRM32R32 { rm32, r32 } | Opcode::MOVRM32R32 { rm32, r32 } => format!(
-                "{} {}, {}",
-                self.opcode_to_intel(),
-                rm32.to_intel_string(),
-                r32.to_intel_string()
-            ),
-
-            // r/m64, r64
-            Opcode::ADDRM64R64 { rm64, r64 }
-            | Opcode::MOVRM64R64 { rm64, r64 }
-            | Opcode::SUBRM64R64 { rm64, r64 } => format!(
-                "{} {}, {}",
-                self.opcode_to_intel(),
-                rm64.to_intel_string(),
-                r64.to_intel_string()
-            ),
-
-            // r/m32, imm32
-            Opcode::MOVRM32IMM32 { rm32, imm } => format!(
-                "{} {}, {}",
-                self.opcode_to_intel(),
-                rm32.to_intel_string(),
-                imm.to_intel_string()
-            ),
-
-            // r/m64, imm32
-            Opcode::MOVRM64IMM32 { rm64, imm } | Opcode::SUBRM64IMM32 { rm64, imm } => format!(
-                "{} {}, {}",
-                self.opcode_to_intel(),
-                rm64.to_intel_string(),
-                imm.to_intel_string()
-            ),
-
-            // etc
-            Opcode::COMMENT(com) => format!("# {}", com),
-        }
-    }
-
-    /// to AT&T syntax.
-    pub fn to_at_string(&self) -> String {
-        match &self {
-            // none
-            Opcode::CWD
-            | Opcode::CDQ
-            | Opcode::CQO
-            | Opcode::RET
-            | Opcode::ENDBR64
-            | Opcode::SYSCALL => self.opcode_to_at().to_string(),
-            Opcode::CALLFUNC(func) => format!("{} {}", self.opcode_to_at(), func.to_at_string()),
-            Opcode::CMPRAXIMM32 { imm } => {
-                format!("{} {}, %rax", self.opcode_to_at(), imm.to_at_string())
-            }
-            Opcode::JMPLABEL { label } => format!("{} {}", self.opcode_to_at(), label),
-            Opcode::JELABEL { label } => format!("{} {}", self.opcode_to_at(), label),
-            Opcode::LEAR64M { r64, m } => format!(
-                "{} {}, {}",
-                self.opcode_to_at(),
-                m.to_at_string(),
-                r64.to_at_string()
-            ),
-
-            // r64
-            Opcode::POPR64 { r64 } | Opcode::PUSHR64 { r64 } => {
-                format!("{} {}", self.opcode_to_at(), r64.to_at_string())
-            }
-
-            // imm32
-            Opcode::PUSHIMM32 { imm } => format!("{} {}", self.opcode_to_at(), imm.to_at_string()),
-
-            // r/m64
-            Opcode::IDIVRM64 { rm64 }
-            | Opcode::INCRM64 { rm64 }
-            | Opcode::PUSHRM64 { rm64 }
-            | Opcode::NEGRM64 { rm64 } => {
-                format!("{} {}", self.opcode_to_at(), rm64.to_at_string())
-            }
-
-            // r32, r/m32
-            Opcode::ADDR32RM32 { r32, rm32 } | Opcode::MOVR32RM32 { r32, rm32 } => format!(
-                "{} {}, {}",
-                self.opcode_to_at(),
-                rm32.to_at_string(),
-                r32.to_at_string()
-            ),
-
-            // r64, r/m64
-            Opcode::ADDR64RM64 { r64, rm64 }
-            | Opcode::IMULR64RM64 { r64, rm64 }
-            | Opcode::SUBR64RM64 { r64, rm64 }
-            | Opcode::MOVR64RM64 { r64, rm64 } => format!(
-                "{} {}, {}",
-                self.opcode_to_at(),
-                rm64.to_at_string(),
-                r64.to_at_string()
-            ),
-
-            // r/m8, r8
-            Opcode::MOVRM8R8 { rm8, r8 } => format!(
-                "{} {}, {}",
-                self.opcode_to_at(),
-                r8.to_at_string(),
-                rm8.to_at_string()
-            ),
-
-            // r/m32, r32
-            Opcode::ADDRM32R32 { rm32, r32 } | Opcode::MOVRM32R32 { rm32, r32 } => format!(
-                "{} {}, {}",
-                self.opcode_to_at(),
-                r32.to_at_string(),
-                rm32.to_at_string()
-            ),
-
-            // r/m64, r64
-            Opcode::ADDRM64R64 { rm64, r64 }
-            | Opcode::MOVRM64R64 { rm64, r64 }
-            | Opcode::SUBRM64R64 { rm64, r64 } => format!(
-                "{} {}, {}",
-                self.opcode_to_at(),
-                r64.to_at_string(),
-                rm64.to_at_string()
-            ),
-
-            // r/m32, imm32
-            Opcode::MOVRM32IMM32 { rm32, imm } => format!(
-                "{} {}, {}",
-                self.opcode_to_at(),
-                imm.to_at_string(),
-                rm32.to_at_string()
-            ),
-
-            // r/m64, imm32
-            Opcode::MOVRM64IMM32 { rm64, imm } | Opcode::SUBRM64IMM32 { rm64, imm } => format!(
-                "{} {}, {}",
-                self.opcode_to_at(),
-                imm.to_at_string(),
-                rm64.to_at_string()
-            ),
-
-            // etc
-            Opcode::COMMENT(com) => format!("# {}", com),
-        }
-    }
-
-    fn opcode_to_intel(&self) -> &str {
-        match &self {
-            // Add
-            Opcode::ADDRM32R32 { rm32: _, r32: _ }
-            | Opcode::ADDR32RM32 { rm32: _, r32: _ }
-            | Opcode::ADDRM64R64 { rm64: _, r64: _ }
-            | Opcode::ADDR64RM64 { r64: _, rm64: _ } => "add",
-
-            // Call
-            Opcode::CALLFUNC(_func) => "call",
-
-            // Compare Two Operands
-            Opcode::CMPRAXIMM32 { imm: _ } => "cmp",
-
-            // Jump
-            Opcode::JMPLABEL { label: _ } => "jmp",
-            Opcode::JELABEL { label: _ } => "je",
-
-            // Load Effective Address
-            Opcode::LEAR64M { r64: _, m: _ } => "lea",
-
-            // none
-            Opcode::CWD => "cwd",
-            Opcode::CDQ => "cdq",
-            Opcode::CQO => "cqo",
-            Opcode::ENDBR64 => "endbr64",
-
-            // (signed) Integer Divide
-            Opcode::IDIVRM64 { rm64: _ } => "idiv",
-
-            // (signed) Integer Multiply
-            Opcode::IMULR64RM64 { r64: _, rm64: _ } => "imul",
-
-            // Increment
-            Opcode::INCRM64 { rm64: _ } => "inc",
-
-            // Move
-            Opcode::MOVRM8R8 { rm8: _, r8: _ }
-            | Opcode::MOVRM32R32 { rm32: _, r32: _ }
-            | Opcode::MOVR32RM32 { r32: _, rm32: _ }
-            | Opcode::MOVRM32IMM32 { rm32: _, imm: _ }
-            | Opcode::MOVRM64R64 { rm64: _, r64: _ }
-            | Opcode::MOVR64RM64 { r64: _, rm64: _ }
-            | Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => "mov",
-
-            // Neg
-            Opcode::NEGRM64 { rm64: _ } => "neg",
-
-            // Pop
-            Opcode::POPR64 { r64: _ } => "pop",
-
-            // Push
-            Opcode::PUSHRM64 { rm64: _ }
-            | Opcode::PUSHR64 { r64: _ }
-            | Opcode::PUSHIMM32 { imm: _ } => "push",
-
-            // Return from procedure
-            Opcode::RET => "ret",
-
-            // Sub
-            Opcode::SUBRM64IMM32 { rm64: _, imm: _ }
-            | Opcode::SUBR64RM64 { r64: _, rm64: _ }
-            | Opcode::SUBRM64R64 { rm64: _, r64: _ } => "sub",
-
-            // Fast System Call
-            Opcode::SYSCALL => "syscall",
-
-            // etc
-            Opcode::COMMENT(_com) => "",
-        }
-    }
-
-    fn opcode_to_at(&self) -> &str {
-        match &self {
-            // Add
-            Opcode::ADDRM32R32 { rm32: _, r32: _ } | Opcode::ADDR32RM32 { r32: _, rm32: _ } => {
-                "addl"
-            }
-            Opcode::ADDRM64R64 { rm64: _, r64: _ } | Opcode::ADDR64RM64 { r64: _, rm64: _ } => {
-                "addq"
-            }
-
-            // Call
-            Opcode::CALLFUNC(_func) => "call",
-
-            // Compare Two Operands
-            Opcode::CMPRAXIMM32 { imm: _ } => "cmpq",
-
-            // Jump
-            Opcode::JMPLABEL { label: _ } => "jmp",
-            Opcode::JELABEL { label: _ } => "je",
-
-            // Load Effective Address
-            Opcode::LEAR64M { r64: _, m: _ } => "leaq",
-
-            // none
-            Opcode::CWD => "cwtd",
-            Opcode::CDQ => "cltd",
-            Opcode::CQO => "cqto",
-            Opcode::ENDBR64 => "endbr64",
-
-            // (signed) Integer Divide
-            Opcode::IDIVRM64 { rm64: _ } => "idivq",
-
-            // (signed) Integer Multiply
-            Opcode::IMULR64RM64 { r64: _, rm64: _ } => "imulq",
-
-            // Increment
-            Opcode::INCRM64 { rm64: _ } => "incq",
-
-            // Move
-            Opcode::MOVRM8R8 { rm8: _, r8: _ } => "movb",
-            Opcode::MOVRM32R32 { rm32: _, r32: _ }
-            | Opcode::MOVR32RM32 { r32: _, rm32: _ }
-            | Opcode::MOVRM32IMM32 { rm32: _, imm: _ } => "movl",
-            Opcode::MOVRM64R64 { rm64: _, r64: _ }
-            | Opcode::MOVR64RM64 { r64: _, rm64: _ }
-            | Opcode::MOVRM64IMM32 { rm64: _, imm: _ } => "movq",
-
-            // Neg
-            Opcode::NEGRM64 { rm64: _ } => "negq",
-
-            // Pop
-            Opcode::POPR64 { r64: _ } => "popq",
-
-            // Push
-            Opcode::PUSHRM64 { rm64: _ }
-            | Opcode::PUSHR64 { r64: _ }
-            | Opcode::PUSHIMM32 { imm: _ } => "pushq",
-
-            // Return from procedure
-            Opcode::RET => "ret",
-
-            // Sub
-            Opcode::SUBRM64IMM32 { rm64: _, imm: _ }
-            | Opcode::SUBR64RM64 { r64: _, rm64: _ }
-            | Opcode::SUBRM64R64 { rm64: _, r64: _ } => "subq",
-
-            // Fast System Call
-            Opcode::SYSCALL => "syscall",
-
-            // etc
-            Opcode::COMMENT(_com) => "",
         }
     }
 }

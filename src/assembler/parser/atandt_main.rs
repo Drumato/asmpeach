@@ -163,6 +163,12 @@ impl Context {
             "pushq" => Opcode::push(OperandSize::QWORD, operand),
             "popq" => Opcode::pop(OperandSize::QWORD, operand),
             "call" => Opcode::call(operand),
+            "je" => Opcode::JELABEL {
+                label: operand.copy_label(),
+            },
+            "jmp" => Opcode::JMPLABEL {
+                label: operand.copy_label(),
+            },
             _ => panic!("not implemented generating '{}' yet", opcode),
         };
 
@@ -187,6 +193,7 @@ impl Context {
         let opcode = match opcode {
             "addl" => Opcode::add(OperandSize::DWORD, src_op.to_32bit(), dst_op.to_32bit()),
             "addq" => Opcode::add(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
+            "cmpq" => Opcode::cmp(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
             "subq" => Opcode::sub(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
             "leaq" => Opcode::lea(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
             "imulq" => Opcode::imul(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
