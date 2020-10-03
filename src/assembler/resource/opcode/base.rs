@@ -66,18 +66,13 @@ pub enum Opcode {
 
     // Jump
     /// Jump Label
-    /// このopcodeに対し `to_bytes()` メソッドを呼び出すと，
-    /// `[REX-Prefix, opcode]` が返されます．
-    /// 自作アセンブラでこのバイト列に対し `imm32(0)` を追加して，
-    /// あとから相対オフセットを計算するといいと思います．
     JMPLABEL { label: String },
 
     /// Jump Equal Label
-    /// このopcodeに対し `to_bytes()` メソッドを呼び出すと，
-    /// `[REX-Prefix, opcode1, opcode2]` が返されます．
-    /// 自作アセンブラでこのバイト列に対し `imm32(0)` を追加して，
-    /// あとから相対オフセットを計算するといいと思います．
     JELABEL { label: String },
+
+    /// Jump Less or Equal Label
+    JLELABEL { label: String },
 
     // Load Effective Address
     /// Store effective address for m in register r64
@@ -201,6 +196,7 @@ impl Opcode {
             // Jump
             Opcode::JMPLABEL { label: _ } => vec![0xe9],
             Opcode::JELABEL { label: _ } => vec![0x0f, 0x84],
+            Opcode::JLELABEL{label: _} => vec![0x0f, 0x8e],
 
             // Load Effective Address
             Opcode::LEAR64M { r64: _, m: _ } => vec![0x8d],
@@ -257,6 +253,7 @@ impl Opcode {
             Opcode::INCRM64 { rm64: _ } => Encoding::M,
             Opcode::JMPLABEL { label: _ } => Encoding::D,
             Opcode::JELABEL { label: _ } => Encoding::D,
+            Opcode::JLELABEL { label: _ } => Encoding::D,
             Opcode::LEAR64M { r64: _, m: _ } => Encoding::RM,
             Opcode::MOVRM8R8 { r8: _, rm8: _ } => Encoding::MR,
             Opcode::MOVRM32R32 { r32: _, rm32: _ } => Encoding::MR,
