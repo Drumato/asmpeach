@@ -196,7 +196,7 @@ impl Opcode {
             // Jump
             Opcode::JMPLABEL { label: _ } => vec![0xe9],
             Opcode::JELABEL { label: _ } => vec![0x0f, 0x84],
-            Opcode::JLELABEL{label: _} => vec![0x0f, 0x8e],
+            Opcode::JLELABEL { label: _ } => vec![0x0f, 0x8e],
 
             // Load Effective Address
             Opcode::LEAR64M { r64: _, m: _ } => vec![0x8d],

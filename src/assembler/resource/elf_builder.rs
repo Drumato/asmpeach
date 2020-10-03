@@ -34,7 +34,7 @@ impl ELFBuilder {
         ehdr.set_data(elf_utilities::header::ELFDATA::DATA2LSB);
 
         // バージョン -> EV_CURRENT
-        ehdr.set_version(elf_utilities::header::ELFVERSION::VERSIONCURRENT);
+        ehdr.set_file_version(elf_utilities::header::ELFVERSION::VERSIONCURRENT);
 
         ehdr
     }

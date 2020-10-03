@@ -163,7 +163,7 @@ impl Context {
             "pushq" => Opcode::push(OperandSize::QWORD, operand),
             "popq" => Opcode::pop(OperandSize::QWORD, operand),
             "call" => Opcode::call(operand),
-            "jle" => Opcode::JLELABEL{
+            "jle" => Opcode::JLELABEL {
                 label: operand.copy_label(),
             },
             "je" => Opcode::JELABEL {

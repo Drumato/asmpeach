@@ -8,16 +8,16 @@ struct RelativeJumpSpec {
     is_label: bool,
 }
 
-impl RelativeJumpSpec{
-    fn new_label(addr: isize) -> Self{
-        Self{
+impl RelativeJumpSpec {
+    fn new_label(addr: isize) -> Self {
+        Self {
             operand_offset: 0,
             address: addr,
-            is_label: true
+            is_label: true,
         }
     }
     fn new_jump(offset: isize) -> Self {
-        Self{
+        Self {
             operand_offset: offset,
             address: offset,
             is_label: false,
@@ -91,7 +91,6 @@ fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, Vec<RelaSymbol>) {
 
                     code_offset += inst_bytes.len() as isize;
                     symbol_codes.append(&mut inst_bytes);
-
                 }
 
                 // jump
@@ -101,8 +100,12 @@ fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, Vec<RelaSymbol>) {
                     code_offset += inst_bytes.len() as isize;
                     symbol_codes.append(&mut inst_bytes);
 
-
-                    resolve_jump(label, code_offset,&mut relative_jump_offset, &mut symbol_codes);
+                    resolve_jump(
+                        label,
+                        code_offset,
+                        &mut relative_jump_offset,
+                        &mut symbol_codes,
+                    );
                 }
                 Opcode::JLELABEL { label } => {
                     let mut inst_bytes = inst.to_bytes();
@@ -110,8 +113,12 @@ fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, Vec<RelaSymbol>) {
                     code_offset += inst_bytes.len() as isize;
                     symbol_codes.append(&mut inst_bytes);
 
-                    resolve_jump(label, code_offset,&mut relative_jump_offset, &mut symbol_codes);
-
+                    resolve_jump(
+                        label,
+                        code_offset,
+                        &mut relative_jump_offset,
+                        &mut symbol_codes,
+                    );
                 }
                 Opcode::JMPLABEL { label } => {
                     let mut inst_bytes = inst.to_bytes();
@@ -119,14 +126,18 @@ fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, Vec<RelaSymbol>) {
                     code_offset += inst_bytes.len() as isize;
                     symbol_codes.append(&mut inst_bytes);
 
-                    resolve_jump(label, code_offset,&mut relative_jump_offset, &mut symbol_codes);
-
+                    resolve_jump(
+                        label,
+                        code_offset,
+                        &mut relative_jump_offset,
+                        &mut symbol_codes,
+                    );
                 }
                 _ => {
                     let mut inst_bytes = inst.to_bytes();
                     code_offset += inst_bytes.len() as isize;
                     symbol_codes.append(&mut inst_bytes);
-                },
+                }
             }
         }
     }
@@ -134,7 +145,12 @@ fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, Vec<RelaSymbol>) {
     (symbol_codes, relocations)
 }
 
-fn resolve_jump(label: &str, length: isize, relative_jump: &mut IndexMap<String, Vec<RelativeJumpSpec>>, sym_codes: &mut Vec<u8>){
+fn resolve_jump(
+    label: &str,
+    length: isize,
+    relative_jump: &mut IndexMap<String, Vec<RelativeJumpSpec>>,
+    sym_codes: &mut Vec<u8>,
+) {
     if let Some(specs) = relative_jump.get_mut(label) {
         for spec in specs.iter() {
             // jump -> jump みたいなものは無視
@@ -152,15 +168,11 @@ fn resolve_jump(label: &str, length: isize, relative_jump: &mut IndexMap<String,
         specs.push(RelativeJumpSpec::new_jump(length));
     } else {
         // jump系命令がラベルの前に存在した場合
-        relative_jump.insert(
-            label.to_string(),
-            vec![RelativeJumpSpec::new_jump(length)],
-        );
+        relative_jump.insert(label.to_string(), vec![RelativeJumpSpec::new_jump(length)]);
     }
-
 }
 
-fn new_rela64(name: String, offset: isize) -> RelaSymbol{
+fn new_rela64(name: String, offset: isize) -> RelaSymbol {
     let mut rela64: RelaSymbol = Default::default();
     rela64.rela64.set_addend(-4);
     rela64.name = name;

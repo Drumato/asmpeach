@@ -31,7 +31,7 @@ pub fn assemble_file(input_file: &str, syntax: Syntax) -> ELFOrError {
 ///     ret"
 ///     .to_string();
 /// let elf_builder = assemble_code(s, Syntax::ATANDT).unwrap();
-/// elf_builder.generate_elf_file("obj.o");
+/// elf_builder.generate_elf_file("obj.o", 0o644);
 /// ```
 pub fn assemble_code(assembly_code: String, syntax: Syntax) -> ELFOrError {
     assemble(assembly_code, syntax)
@@ -71,10 +71,7 @@ fn assemble(source: String, syntax: Syntax) -> ELFOrError {
     // ヘッダの調整
     builder.condition_elf_header();
 
-    Ok(elf_utilities::file::ELF64Dumper::new(
-        builder.give_file(),
-        0o644,
-    ))
+    Ok(elf_utilities::file::ELF64Dumper::new(builder.give_file()))
 }
 
 impl ELFBuilder {
@@ -118,7 +115,7 @@ impl ELFBuilder {
                 symbol_code_length as u64,
                 symbol_offset,
             );
-            global_symbol.set_symbol_name(symbol_name.to_string());
+            global_symbol.symbol_name = Some(symbol_name.to_string());
             elf_symbols.push(global_symbol);
 
             // シンボル名を指すインデックスの更新( null byte を見越して+1する)
@@ -207,16 +204,16 @@ impl ELFBuilder {
     }
 
     fn condition_elf_header(&mut self) {
-        self.file.condition();
+        self.file.finalize();
     }
 
     fn init_text_section_header(&self, length: usize) -> elf_utilities::section::Shdr64 {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
         shdr.set_type(elf_utilities::section::TYPE::PROGBITS);
-        shdr.set_size(length as elf_utilities::Elf64Xword);
-        shdr.set_addralign(1);
-        shdr.set_flags(elf_utilities::section::SHF_ALLOC | elf_utilities::section::SHF_EXECINSTR);
+        shdr.sh_size = length as elf_utilities::Elf64Xword;
+        shdr.sh_addralign = 1;
+        shdr.sh_flags = elf_utilities::section::SHF_ALLOC | elf_utilities::section::SHF_EXECINSTR;
 
         shdr
     }
@@ -228,15 +225,15 @@ impl ELFBuilder {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
         shdr.set_type(elf_utilities::section::TYPE::SYMTAB);
-        shdr.set_size(length);
-        shdr.set_addralign(1);
-        shdr.set_entry_size(elf_utilities::symbol::Symbol64::size());
+        shdr.sh_size = length;
+        shdr.sh_addralign = 1;
+        shdr.sh_entsize = elf_utilities::symbol::Symbol64::size();
 
         // TODO: .strtabが3番目にあることを決め打ち
-        shdr.set_link(3);
+        shdr.sh_link = 3;
 
         // TODO: 最初のグローバルシンボルが3番目にあることを決め打ち
-        shdr.set_info(2);
+        shdr.sh_info = 2;
         shdr
     }
 
@@ -247,8 +244,8 @@ impl ELFBuilder {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
         shdr.set_type(elf_utilities::section::TYPE::STRTAB);
-        shdr.set_size(length);
-        shdr.set_addralign(1);
+        shdr.sh_size = length;
+        shdr.sh_addralign = 1;
 
         shdr
     }
@@ -260,16 +257,16 @@ impl ELFBuilder {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
         shdr.set_type(elf_utilities::section::TYPE::RELA);
-        shdr.set_size(length);
-        shdr.set_flags(elf_utilities::section::section_flag::SHF_INFO_LINK);
-        shdr.set_addralign(8);
-        shdr.set_entry_size(elf_utilities::relocation::Rela64::size());
+        shdr.sh_size = length;
+        shdr.sh_flags = elf_utilities::section::SHF_INFO_LINK;
+        shdr.sh_addralign = 8;
+        shdr.sh_entsize = elf_utilities::relocation::Rela64::size();
 
         // TODO: シンボルテーブルが2番目にあることを決め打ち
-        shdr.set_link(2);
+        shdr.sh_link = 2;
 
         // TODO: .textセクションが一番目にあることを決め打ち
-        shdr.set_info(1);
+        shdr.sh_info = 1;
 
         shdr
     }
@@ -288,19 +285,19 @@ impl ELFBuilder {
         st_offset: elf_utilities::Elf64Addr,
     ) -> elf_utilities::symbol::Symbol64 {
         let mut symbol: elf_utilities::symbol::Symbol64 = Default::default();
-        symbol.set_name(st_name);
-        symbol.set_size(st_size);
-        symbol.set_value(st_offset);
+        symbol.st_name = st_name;
+        symbol.st_size = st_size;
+        symbol.st_value = st_offset;
 
         // TODO: .textが1番目にあることを決め打ち
-        symbol.set_shndx(1);
+        symbol.st_shndx = 1;
 
         // グローバル + Function属性
-        let sym_info = elf_utilities::symbol::symbol_info(
-            elf_utilities::symbol::STB_GLOBAL,
-            elf_utilities::symbol::STT_FUNC,
+
+        symbol.set_info(
+            elf_utilities::symbol::TYPE::FUNC,
+            elf_utilities::symbol::BIND::GLOBAL,
         );
-        symbol.set_info(sym_info);
 
         symbol
     }
@@ -308,14 +305,13 @@ impl ELFBuilder {
     fn create_section_symbol(&self, shndx: u16) -> elf_utilities::symbol::Symbol64 {
         let mut symbol: elf_utilities::symbol::Symbol64 = Default::default();
 
-        symbol.set_shndx(shndx);
+        symbol.st_shndx = shndx;
 
         // ローカル + SECTION属性
-        let sym_info = elf_utilities::symbol::symbol_info(
-            elf_utilities::symbol::STB_LOCAL,
-            elf_utilities::symbol::STT_SECTION,
+        symbol.set_info(
+            elf_utilities::symbol::TYPE::SECTION,
+            elf_utilities::symbol::BIND::LOCAL,
         );
-        symbol.set_info(sym_info);
 
         symbol
     }
