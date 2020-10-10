@@ -1,13 +1,13 @@
 [package]
-name = "x64_asm"
+name = "asmpeach"
 version = "0.1.44"
 authors = ["Drumato <drumatech109@gmail.com>"]
 edition = "2018"
 license = "MIT"
 description = "x86_64 assembler"
-documentation = "https://docs.rs/x64-asm"
-homepage = "https://github.com/Drumato/x64-asm"
-repository = "https://github.com/Drumato/x64-asm"
+documentation = "https://docs.rs/asmpeach"
+homepage = "https://github.com/Drumato/asmpeach"
+repository = "https://github.com/Drumato/asmpeach"
 readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

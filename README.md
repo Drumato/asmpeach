@@ -1,6 +1,6 @@
-[![x64_asm at crates.io](https://img.shields.io/crates/v/x64_asm.svg)](https://crates.io/crates/x64_asm)  [![x64_asm at docs.rs](https://docs.rs/x64_asm/badge.svg)](https://docs.rs/x64_asm)
+[![asmpeach at crates.io](https://img.shields.io/crates/v/asmpeach.svg)](https://crates.io/crates/asmpeach)  [![asmpeach at docs.rs](https://docs.rs/asmpeach/badge.svg)](https://docs.rs/asmpeach)
 
-# x64_asm
+# asmpeach
 x86_64 assembler
 
 ## Get Started
@@ -9,21 +9,21 @@ x86_64 assembler
 
 ```
 cargo build
-./target/debug/x64_asm <assembly-file in AT&T syntax>
+./target/debug/asmpeach <assembly-file in AT&T syntax>
 ```
 
 ### How to use as a Rust crate
 
-See **[documentation](https://docs.rs/x64_asm)**
+See **[documentation](https://docs.rs/asmpeach)**
 
 ```rust
-use x64_asm;
+use asmpeach;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{
     // you can pass a file(or string).
-    let elf_builder = x64_asm::assemble_file("asm.s", x64_asm::Syntax::ATANDT)?;
+    let elf_builder = asmpeach::assemble_file("asm.s", asmpeach::Syntax::ATANDT)?;
     
-    elf_builder.generate_elf_file("obj.o")?;
+    elf_builder.generate_elf_file("obj.o", 0o644)?;
 
     Ok(())
 }

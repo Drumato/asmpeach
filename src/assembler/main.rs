@@ -19,7 +19,7 @@ pub fn assemble_file(input_file: &str, syntax: Syntax) -> ELFOrError {
 /// # Examples
 ///
 /// ```
-/// use x64_asm::*;
+/// use asmpeach::*;
 ///
 /// let s = "    .globl main
 ///     .type main, @function

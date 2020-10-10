@@ -6,7 +6,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    let elf_builder = x64_asm::assemble_file(&args[1], x64_asm::Syntax::ATANDT)?;
+    let elf_builder = asmpeach::assemble_file(&args[1], asmpeach::Syntax::ATANDT)?;
 
     elf_builder.generate_elf_file("obj.o", 0o644)?;
 
