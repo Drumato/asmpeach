@@ -2,7 +2,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = std::env::args().collect::<Vec<String>>();
 
     if args.len() != 2 {
-        eprintln!("usage: ./x64_asm <file-path>");
+        eprintln!("usage: ./asmpeach <file-path>");
         std::process::exit(1);
     }
 
