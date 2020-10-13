@@ -210,7 +210,7 @@ impl ELFBuilder {
     fn init_text_section_header(&self, length: usize) -> elf_utilities::section::Shdr64 {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
-        shdr.set_type(elf_utilities::section::TYPE::PROGBITS);
+        shdr.set_type(elf_utilities::section::Type::ProgBits);
         shdr.sh_size = length as elf_utilities::Elf64Xword;
         shdr.sh_addralign = 1;
         shdr.sh_flags = elf_utilities::section::SHF_ALLOC | elf_utilities::section::SHF_EXECINSTR;
@@ -224,7 +224,7 @@ impl ELFBuilder {
     ) -> elf_utilities::section::Shdr64 {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
-        shdr.set_type(elf_utilities::section::TYPE::SYMTAB);
+        shdr.set_type(elf_utilities::section::Type::SymTab);
         shdr.sh_size = length;
         shdr.sh_addralign = 1;
         shdr.sh_entsize = elf_utilities::symbol::Symbol64::size();
@@ -243,7 +243,7 @@ impl ELFBuilder {
     ) -> elf_utilities::section::Shdr64 {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
-        shdr.set_type(elf_utilities::section::TYPE::STRTAB);
+        shdr.set_type(elf_utilities::section::Type::StrTab);
         shdr.sh_size = length;
         shdr.sh_addralign = 1;
 
@@ -256,7 +256,7 @@ impl ELFBuilder {
     ) -> elf_utilities::section::Shdr64 {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
-        shdr.set_type(elf_utilities::section::TYPE::RELA);
+        shdr.set_type(elf_utilities::section::Type::Rela);
         shdr.sh_size = length;
         shdr.sh_flags = elf_utilities::section::SHF_INFO_LINK;
         shdr.sh_addralign = 8;
@@ -274,7 +274,7 @@ impl ELFBuilder {
     fn init_nodata_header(&self) -> elf_utilities::section::Shdr64 {
         let mut shdr: elf_utilities::section::Shdr64 = Default::default();
 
-        shdr.set_type(elf_utilities::section::TYPE::NULL);
+        shdr.set_type(elf_utilities::section::Type::Null);
         shdr
     }
 
@@ -295,8 +295,8 @@ impl ELFBuilder {
         // グローバル + Function属性
 
         symbol.set_info(
-            elf_utilities::symbol::TYPE::FUNC,
-            elf_utilities::symbol::BIND::GLOBAL,
+            elf_utilities::symbol::Type::Func,
+            elf_utilities::symbol::Bind::Global,
         );
 
         symbol
@@ -309,8 +309,8 @@ impl ELFBuilder {
 
         // ローカル + SECTION属性
         symbol.set_info(
-            elf_utilities::symbol::TYPE::SECTION,
-            elf_utilities::symbol::BIND::LOCAL,
+            elf_utilities::symbol::Type::Section,
+            elf_utilities::symbol::Bind::Local,
         );
 
         symbol

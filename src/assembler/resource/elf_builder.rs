@@ -22,19 +22,19 @@ impl ELFBuilder {
         let mut ehdr: elf_utilities::header::Ehdr64 = Default::default();
 
         // アーキテクチャ -> X86_64
-        ehdr.set_machine(elf_utilities::header::ELFMACHINE::EMX8664);
+        ehdr.set_machine(elf_utilities::header::Machine::X8664);
 
         // クラス -> 64bit
-        ehdr.set_class(elf_utilities::header::ELFCLASS::CLASS64);
+        ehdr.set_class(elf_utilities::header::Class::Bit64);
 
         // タイプ -> RELOCATION
-        ehdr.set_elf_type(elf_utilities::header::ELFTYPE::REL);
+        ehdr.set_elf_type(elf_utilities::header::Type::Rel);
 
         // データ -> Little Endian
-        ehdr.set_data(elf_utilities::header::ELFDATA::DATA2LSB);
+        ehdr.set_data(elf_utilities::header::Data::LSB2);
 
         // バージョン -> EV_CURRENT
-        ehdr.set_file_version(elf_utilities::header::ELFVERSION::VERSIONCURRENT);
+        ehdr.set_file_version(elf_utilities::header::Version::Current);
 
         ehdr
     }
