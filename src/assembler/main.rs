@@ -61,8 +61,6 @@ fn assemble(source: String, syntax: Syntax) -> ELFOrError {
     builder.add_symtab_string_section(&symbols);
     // .rela.text セクション
     builder.add_relatext_section(&reloc_syms);
-    // .nodata セクション
-    builder.add_nodata_section();
     // .rodata セクション
     // object_file_builder.add_rodata_section(&symbols);
     // .shstrtab セクション
@@ -175,24 +173,9 @@ impl ELFBuilder {
         self.add_section(relatext_section);
     }
 
-    fn add_nodata_section(&mut self) {
-        let nodata_header = self.init_nodata_header();
-        let mut nodata_section =
-            elf_utilities::section::Section64::new(".nodata".to_string(), nodata_header);
-        nodata_section.bytes = Some(Vec::new());
-        self.add_section(nodata_section);
-    }
-
     pub fn add_shstrtab_string_section(&mut self) {
         // TODO: 決め打ち
-        let section_names = vec![
-            ".text",
-            ".symtab",
-            ".strtab",
-            ".rela.text",
-            ".nodata",
-            ".shstrtab",
-        ];
+        let section_names = vec![".text", ".symtab", ".strtab", ".rela.text", ".shstrtab"];
 
         let section_string_table = elf_utilities::section::build_string_table(section_names);
         let shstrtab_header =
@@ -268,13 +251,6 @@ impl ELFBuilder {
         // TODO: .textセクションが一番目にあることを決め打ち
         shdr.sh_info = 1;
 
-        shdr
-    }
-
-    fn init_nodata_header(&self) -> elf_utilities::section::Shdr64 {
-        let mut shdr: elf_utilities::section::Shdr64 = Default::default();
-
-        shdr.set_type(elf_utilities::section::Type::Null);
         shdr
     }
 
