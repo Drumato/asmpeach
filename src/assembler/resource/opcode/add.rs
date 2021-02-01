@@ -20,7 +20,7 @@ impl Opcode {
                         r32: dst_gpr,
                         rm32: src,
                     },
-                    _ => unreachable!(),
+                    _ => panic!(""),
                 },
                 _ => unreachable!(),
             },

@@ -58,8 +58,7 @@ impl Context {
         match directive {
             ".global" | ".globl" => self.parse_global_directive(iterator),
             ".type" => self.parse_symbol_type_directive(iterator),
-            ".section" => {}
-            ".text" => {}
+            ".section" | ".text" | ".size" | ".ident" | ".align" | ".long" | ".string" => {}
             _ => {}
         }
     }
@@ -285,7 +284,8 @@ impl Context {
 
     fn is_directive_start(&self, directive: &str) -> bool {
         match directive {
-            ".globl" | ".global" | ".type" | ".section" | ".text" => true,
+            ".globl" | ".global" | ".type" | ".section" | ".text" | ".size" | ".align"
+            | ".long" | ".string" | "" => true,
             _ => false,
         }
     }
