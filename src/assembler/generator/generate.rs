@@ -1,4 +1,4 @@
-use crate::assembler::resource::{Opcode, RelaSymbol, Symbol};
+use crate::assembler::resource::{InstName, RelaSymbol, Symbol};
 use indexmap::map::IndexMap;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone)]
@@ -81,12 +81,12 @@ fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, Vec<RelaSymbol>) {
             // いくつかの命令は再配置シンボルの生成など，
             // 機械語への変換以外にも操作が必要．
 
-            match &inst.opcode {
-                Opcode::CALLFUNC(func) => {
+            match inst.name() {
+                InstName::Call => {
                     // 適当なアドレスを生成しておく
-                    let mut inst_bytes = vec![0xe8, 0x00, 0x00, 0x00, 0x00];
+                    let mut inst_bytes = inst.assemble();
 
-                    let rela64 = new_rela64(func.copy_label(), code_offset);
+                    let rela64 = new_rela64(inst.operand_1().unwrap().copy_label(), code_offset);
                     relocations.push(rela64);
 
                     code_offset += inst_bytes.len() as isize;
@@ -94,47 +94,21 @@ fn gen_symbol_code(sym: &Symbol) -> (Vec<u8>, Vec<RelaSymbol>) {
                 }
 
                 // jump
-                Opcode::JELABEL { label } => {
-                    let mut inst_bytes = inst.to_bytes();
+                InstName::Jmp => {
+                    let mut inst_bytes = inst.assemble();
                     inst_bytes.append(&mut vec![0x00, 0x00, 0x00, 0x00]);
                     code_offset += inst_bytes.len() as isize;
                     symbol_codes.append(&mut inst_bytes);
 
                     resolve_jump(
-                        label,
-                        code_offset,
-                        &mut relative_jump_offset,
-                        &mut symbol_codes,
-                    );
-                }
-                Opcode::JLELABEL { label } => {
-                    let mut inst_bytes = inst.to_bytes();
-                    inst_bytes.append(&mut vec![0x00, 0x00, 0x00, 0x00]);
-                    code_offset += inst_bytes.len() as isize;
-                    symbol_codes.append(&mut inst_bytes);
-
-                    resolve_jump(
-                        label,
-                        code_offset,
-                        &mut relative_jump_offset,
-                        &mut symbol_codes,
-                    );
-                }
-                Opcode::JMPLABEL { label } => {
-                    let mut inst_bytes = inst.to_bytes();
-                    inst_bytes.append(&mut vec![0x00, 0x00, 0x00, 0x00]);
-                    code_offset += inst_bytes.len() as isize;
-                    symbol_codes.append(&mut inst_bytes);
-
-                    resolve_jump(
-                        label,
+                        &inst.operand_1().unwrap().copy_label(),
                         code_offset,
                         &mut relative_jump_offset,
                         &mut symbol_codes,
                     );
                 }
                 _ => {
-                    let mut inst_bytes = inst.to_bytes();
+                    let mut inst_bytes = inst.assemble();
                     code_offset += inst_bytes.len() as isize;
                     symbol_codes.append(&mut inst_bytes);
                 }

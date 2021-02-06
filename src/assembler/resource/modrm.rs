@@ -1,5 +1,7 @@
 use crate::assembler::resource::{GeneralPurposeRegister, Operand};
 
+use super::Encoding;
+
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub struct ModRM {
     mode: AddressingMode,
@@ -11,14 +13,16 @@ impl ModRM {
     pub fn to_byte(&self) -> u8 {
         Self::mode_field(self.mode.to_byte()) | self.reg | self.rm
     }
+    pub fn new(encoding: Encoding, reg: &GeneralPurposeRegister, rm: &Operand) -> Self {
+        match encoding {
+            Encoding::MR => Self::new_mr(rm.addressing_mode(), reg, rm),
+            _ => todo!(),
+        }
+    }
 
     /// new MI Encoding.
     pub fn new_mi(mode: AddressingMode, rm: &Operand) -> Self {
-        let rm_byte = if rm.req_sib_byte() {
-            0x04
-        } else {
-            rm.number() & 0b111
-        };
+        let rm_byte = if rm.req_sib_byte() { 0x04 } else { rm.number() };
         Self {
             mode,
             rm: Self::rm_field(rm_byte),
@@ -26,7 +30,7 @@ impl ModRM {
         }
     }
     /// new MR Encoding.
-    pub fn new_mr(mode: AddressingMode, rm: &Operand, reg: &GeneralPurposeRegister) -> Self {
+    fn new_mr(mode: AddressingMode, reg: &GeneralPurposeRegister, rm: &Operand) -> Self {
         let rm_byte = if rm.req_sib_byte() {
             0x04
         } else {

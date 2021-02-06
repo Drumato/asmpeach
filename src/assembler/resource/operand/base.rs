@@ -1,12 +1,12 @@
 use crate::assembler::resource::{
-    AddressingMode, Displacement, GeneralPurposeRegister, Immediate, RegisterSize, SIBByte,
+    AddressingMode, Displacement, GeneralPurposeRegister, Immediate, SIBByte,
 };
 
 #[allow(dead_code)]
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
 pub enum Operand {
     // register operands
-    GENERALREGISTER(GeneralPurposeRegister),
+    GeneralReg(GeneralPurposeRegister),
     // SEGMENT,
     // FLAGS,
     // X87FPU
@@ -15,17 +15,36 @@ pub enum Operand {
     // CONTROL
     /// memory addressing
     /// ex. [rax], -4[rbp]
-    ADDRESSING {
-        base: GeneralPurposeRegister,
-        index: Option<GeneralPurposeRegister>,
-        disp: Option<Displacement>,
-        scale: Option<u8>,
-    },
-
+    Memory(OpMemory),
     /// label in assembly code.
     /// using label operand in jump-related instructions.
-    LABEL(String),
+    Label(String),
     Immediate(Immediate),
+}
+#[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
+pub struct OpMemory {
+    pub base: GeneralPurposeRegister,
+    pub index: Option<GeneralPurposeRegister>,
+    pub disp: Option<Displacement>,
+    pub scale: Option<u8>,
+}
+#[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
+pub enum OperandSize {
+    Byte,
+    Word,
+    Dword,
+    Qword,
+}
+
+impl std::fmt::Display for Operand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operand::GeneralReg(gpr) => write!(f, "{}", gpr),
+            Operand::Memory(mem) => write!(f, "{:?}", mem),
+            Operand::Label(l) => write!(f, "{}", l),
+            Operand::Immediate(v) => write!(f, "{}", v),
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -33,7 +52,7 @@ impl Operand {
     /// ラベルの文字列を取得
     pub fn copy_label(&self) -> String {
         match self {
-            Operand::LABEL(contents) => contents.to_string(),
+            Operand::Label(contents) => contents.to_string(),
             _ => unimplemented!(),
         }
     }
@@ -41,12 +60,7 @@ impl Operand {
     /// メモリアドレッシングかチェック
     pub fn is_addressing(&self) -> bool {
         match self {
-            Operand::ADDRESSING {
-                base: _,
-                index: _,
-                disp: _,
-                scale: _,
-            } => true,
+            Operand::Memory(_) => true,
             _ => false,
         }
     }
@@ -54,13 +68,8 @@ impl Operand {
     /// REX-Prefix の計算に使用
     pub fn is_expanded(&self) -> bool {
         match self {
-            Operand::ADDRESSING {
-                base: base_reg,
-                index: _,
-                disp: _,
-                scale: _,
-            } => base_reg.is_expanded(),
-            Operand::GENERALREGISTER(gpr) => gpr.is_expanded(),
+            Operand::Memory(mem) => mem.base.is_expanded(),
+            Operand::GeneralReg(gpr) => gpr.is_expanded(),
             _ => false,
         }
     }
@@ -68,17 +77,12 @@ impl Operand {
     /// REX-Prefix のx_bitの計算に使用
     pub fn index_reg_is_expanded(&self) -> bool {
         match self {
-            Operand::ADDRESSING {
-                base: _,
-                index: index_reg,
-                disp: _,
-                scale: _,
-            } => {
-                if index_reg.is_none() {
+            Operand::Memory(mem) => {
+                if mem.index.is_none() {
                     return false;
                 }
 
-                index_reg.unwrap().is_expanded()
+                mem.index.unwrap().is_expanded()
             }
 
             _ => false,
@@ -92,32 +96,30 @@ impl Operand {
             return None;
         }
 
-        let (base, index, _disp, scale) = self.get_addressing();
-
-        if let Some(scale_byte) = scale {
-            Some(SIBByte {
-                base_reg: base.number(),
-                index_reg: index.unwrap().number(),
-                scale: scale_byte,
-            })
-        } else {
-            Some(SIBByte {
-                base_reg: base.number(),
-                index_reg: index.unwrap().number(),
-                scale: 0,
-            })
+        if let Operand::Memory(mem) = self {
+            let scale = mem.scale.unwrap_or(0);
+            return Some(SIBByte {
+                base_reg: mem.base.number(),
+                index_reg: mem.index.unwrap().number(),
+                scale,
+            });
         }
+
+        unreachable!()
     }
 
     /// displacementを取得
     /// コード生成に使用
-    pub fn get_displacement(&self) -> Option<Displacement> {
+    pub fn displacement(&self) -> Option<Displacement> {
         if !self.is_addressing() {
             return None;
         }
 
-        let (_base, _index, disp, _scale) = self.get_addressing();
-        disp
+        if let Operand::Memory(mem) = self {
+            return mem.disp;
+        }
+
+        unreachable!()
     }
 
     /// immediateを取得
@@ -132,13 +134,7 @@ impl Operand {
     /// SIB-Byteを必要とするかチェック
     pub fn req_sib_byte(&self) -> bool {
         match self {
-            Operand::ADDRESSING {
-                base: _,
-                index: index_reg,
-                disp: _,
-                scale: _,
-            } => index_reg.is_some(),
-
+            Operand::Memory(mem) => mem.index.is_some(),
             _ => false,
         }
     }
@@ -147,93 +143,55 @@ impl Operand {
     /// レジスタ番号の取得
     pub fn number(&self) -> u8 {
         match self {
-            Self::GENERALREGISTER(reg) => reg.number(),
-            Self::ADDRESSING {
-                base: base_reg,
-                index: _,
-                disp: _,
-                scale: _,
-            } => base_reg.number(),
-            _ => panic!("cannot get register-number from {:?}", self),
+            Self::GeneralReg(reg) => reg.number(),
+            Self::Memory(mem) => mem.base.number(),
+            _ => panic!("cannot get register-number from {}", self),
         }
     }
 
     /// get addressing mode in ModRM:mode
     pub fn addressing_mode(&self) -> AddressingMode {
         match self {
-            Operand::ADDRESSING {
-                base: _,
-                index: _,
-                disp: displacement,
-                scale: _,
-            } => {
-                if displacement.is_none() {
+            Operand::Memory(mem) => {
+                if mem.disp.is_none() {
                     return AddressingMode::REGISTER;
                 }
 
-                let disp = displacement.unwrap();
+                let disp = mem.disp.unwrap();
                 match disp {
-                    Displacement::DISP8(_v8) => AddressingMode::DISP8,
-                    Displacement::DISP32(_v32) => AddressingMode::DISP32,
+                    Displacement::Disp8(_v8) => AddressingMode::DISP8,
+                    Displacement::Disp32(_v32) => AddressingMode::DISP32,
                 }
             }
-            Operand::GENERALREGISTER(_reg) => AddressingMode::DIRECTREG,
+            Operand::GeneralReg(_reg) => AddressingMode::DIRECTREG,
             _ => panic!("cannot get addressing mode from {:?}", self),
-        }
-    }
-
-    /// メモリアドレッシングの情報を取得する
-    /// is_addressing() を先に呼ぶ必要がある
-    pub fn get_addressing(
-        &self,
-    ) -> (
-        GeneralPurposeRegister,
-        Option<GeneralPurposeRegister>,
-        Option<Displacement>,
-        Option<u8>,
-    ) {
-        match self {
-            Operand::ADDRESSING {
-                base: base_reg,
-                index: index_reg,
-                disp: displacement,
-                scale,
-            } => (*base_reg, *index_reg, *displacement, *scale),
-            _ => panic!(
-                "cannot get addressing materials. check 'is_addressing()' before calling this."
-            ),
         }
     }
 
     pub fn to_intel_string(&self) -> String {
         match self {
-            Operand::GENERALREGISTER(gpr) => gpr.to_intel_string(),
+            Operand::GeneralReg(gpr) => gpr.to_intel_string(),
             Operand::Immediate(imm) => imm.to_intel_string(),
-            Operand::LABEL(s) => s.to_string(),
-            Operand::ADDRESSING {
-                base: base_reg,
-                index: index_reg,
-                disp: displacement,
-                scale,
-            } => {
-                let size_ptr = match base_reg.size() {
-                    RegisterSize::S8 => "BYTE PTR",
-                    RegisterSize::S16 => "WORD PTR",
-                    RegisterSize::S32 => "DWORD PTR",
-                    RegisterSize::S64 => "QWORD PTR",
+            Operand::Label(s) => s.to_string(),
+            Operand::Memory(mem) => {
+                let size_ptr = match mem.base.size() {
+                    OperandSize::Byte => "BYTE PTR",
+                    OperandSize::Word => "WORD PTR",
+                    OperandSize::Dword => "DWORD PTR",
+                    OperandSize::Qword => "QWORD PTR",
                 };
 
-                let mut addressing = if displacement.is_some() {
-                    format!("{}[", displacement.unwrap().to_string())
+                let mut addressing = if mem.disp.is_some() {
+                    format!("{}[", mem.disp.unwrap().to_string())
                 } else {
                     "[".to_string()
                 };
-                addressing += &base_reg.to_64bit().to_intel_string();
+                addressing += &mem.base.to_64bit().to_intel_string();
 
-                if let Some(index) = index_reg {
+                if let Some(index) = mem.index {
                     addressing += &format!(" + {}", index.to_intel_string());
                 }
-                if let Some(s) = scale {
+                if let Some(s) = mem.scale {
                     addressing += &format!(" * {}", s);
                 }
                 addressing += "]";
@@ -245,27 +203,22 @@ impl Operand {
 
     pub fn to_at_string(&self) -> String {
         match self {
-            Operand::GENERALREGISTER(gpr) => gpr.to_at_string(),
+            Operand::GeneralReg(gpr) => gpr.to_at_string(),
             Operand::Immediate(imm) => imm.to_at_string(),
-            Operand::LABEL(s) => s.to_string(),
-            Operand::ADDRESSING {
-                base: base_reg,
-                index: index_reg,
-                disp: displacement,
-                scale,
-            } => {
-                let disp_str = if displacement.is_some() {
-                    displacement.unwrap().to_string()
+            Operand::Label(s) => s.to_string(),
+            Operand::Memory(mem) => {
+                let disp_str = if mem.disp.is_some() {
+                    mem.disp.unwrap().to_string()
                 } else {
                     String::new()
                 };
 
-                let mut addressing = base_reg.to_64bit().to_at_string();
+                let mut addressing = mem.base.to_64bit().to_at_string();
 
-                if let Some(index) = index_reg {
+                if let Some(index) = mem.index {
                     addressing += &format!(", {}", index.to_at_string());
                 }
-                if let Some(s) = scale {
+                if let Some(s) = mem.scale {
                     addressing += &format!(", {}", s);
                 }
 
@@ -276,123 +229,80 @@ impl Operand {
 
     pub fn to_8bit(&self) -> Self {
         match self {
-            Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_8bit()),
+            Operand::GeneralReg(gpr) => Operand::GeneralReg(gpr.to_8bit()),
             Operand::Immediate(imm) => Operand::Immediate(imm.as_8bit()),
-            Operand::ADDRESSING {
-                base: b,
-                index: i,
-                disp: d,
-                scale: s,
-            } => Operand::ADDRESSING {
-                base: b.to_8bit(),
-                index: match i {
+            Operand::Memory(mem) => Operand::Memory(OpMemory {
+                base: mem.base.to_8bit(),
+                index: match mem.index {
                     Some(ireg) => Some(ireg.to_8bit()),
                     None => None,
                 },
-                disp: *d,
-                scale: *s,
-            },
-            Operand::LABEL(_label) => unreachable!(),
+                disp: mem.disp,
+                scale: mem.scale,
+            }),
+            Operand::Label(_label) => unreachable!(),
         }
     }
     pub fn to_16bit(&self) -> Self {
         match self {
-            Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_16bit()),
+            Operand::GeneralReg(gpr) => Operand::GeneralReg(gpr.to_16bit()),
             Operand::Immediate(imm) => Operand::Immediate(imm.as_16bit()),
-            Operand::ADDRESSING {
-                base: b,
-                index: i,
-                disp: d,
-                scale: s,
-            } => Operand::ADDRESSING {
-                base: b.to_16bit(),
-                index: match i {
+            Operand::Memory(mem) => Operand::Memory(OpMemory {
+                base: mem.base.to_16bit(),
+                index: match mem.index {
                     Some(ireg) => Some(ireg.to_16bit()),
                     None => None,
                 },
-                disp: *d,
-                scale: *s,
-            },
-            Operand::LABEL(_label) => unreachable!(),
+                disp: mem.disp,
+                scale: mem.scale,
+            }),
+            Operand::Label(_label) => unreachable!(),
         }
     }
     pub fn to_32bit(&self) -> Self {
         match self {
-            Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_32bit()),
+            Operand::GeneralReg(gpr) => Operand::GeneralReg(gpr.to_32bit()),
             Operand::Immediate(imm) => Operand::Immediate(imm.as_32bit()),
-            Operand::ADDRESSING {
-                base: b,
-                index: i,
-                disp: d,
-                scale: s,
-            } => Operand::ADDRESSING {
-                base: b.to_32bit(),
-                index: match i {
+            Operand::Memory(mem) => Operand::Memory(OpMemory {
+                base: mem.base.to_32bit(),
+                index: match mem.index {
                     Some(ireg) => Some(ireg.to_32bit()),
                     None => None,
                 },
-                disp: *d,
-                scale: *s,
-            },
-            Operand::LABEL(_label) => unreachable!(),
+                disp: mem.disp,
+                scale: mem.scale,
+            }),
+            Operand::Label(_label) => unreachable!(),
         }
     }
 
     pub fn to_64bit(&self) -> Self {
         match self {
-            Operand::GENERALREGISTER(gpr) => Operand::GENERALREGISTER(gpr.to_64bit()),
+            Operand::GeneralReg(gpr) => Operand::GeneralReg(gpr.to_64bit()),
             Operand::Immediate(imm) => Operand::Immediate(imm.as_32bit()),
-            Operand::ADDRESSING {
-                base: b,
-                index: i,
-                disp: d,
-                scale: s,
-            } => Operand::ADDRESSING {
-                base: b.to_64bit(),
-                index: match i {
+            Operand::Memory(mem) => Operand::Memory(OpMemory {
+                base: mem.base.to_64bit(),
+                index: match mem.index {
                     Some(ireg) => Some(ireg.to_64bit()),
                     None => None,
                 },
-                disp: *d,
-                scale: *s,
-            },
-            Operand::LABEL(_label) => unreachable!(),
+                disp: mem.disp,
+                scale: mem.scale,
+            }),
+            Operand::Label(_label) => unreachable!(),
         }
     }
 
     pub fn size(&self) -> OperandSize {
         match self {
-            Operand::GENERALREGISTER(gpr) => match gpr.size() {
-                RegisterSize::S8 => OperandSize::BYTE,
-                RegisterSize::S16 => OperandSize::WORD,
-                RegisterSize::S32 => OperandSize::DWORD,
-                RegisterSize::S64 => OperandSize::QWORD,
-            },
-            Operand::ADDRESSING {
-                base: base_reg,
-                index: _,
-                disp: _,
-                scale: _,
-            } => match base_reg.size() {
-                RegisterSize::S8 => OperandSize::BYTE,
-                RegisterSize::S16 => OperandSize::WORD,
-                RegisterSize::S32 => OperandSize::DWORD,
-                RegisterSize::S64 => OperandSize::QWORD,
-            },
-            Operand::LABEL(_label) => unreachable!(),
+            Operand::GeneralReg(gpr) => gpr.size(),
+            Operand::Memory(mem) => mem.base.size(),
+            Operand::Label(_label) => unreachable!(),
             Operand::Immediate(imm) => match imm {
-                Immediate::I8(_v) => OperandSize::BYTE,
-                Immediate::I16(_v) => OperandSize::WORD,
-                Immediate::I32(_v) => OperandSize::DWORD,
+                Immediate::I8(_v) => OperandSize::Byte,
+                Immediate::I16(_v) => OperandSize::Word,
+                Immediate::I32(_v) => OperandSize::Dword,
             },
         }
     }
-}
-
-#[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
-pub enum OperandSize {
-    BYTE,
-    WORD,
-    DWORD,
-    QWORD,
 }

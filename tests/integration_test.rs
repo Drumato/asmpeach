@@ -25,7 +25,6 @@ mod c_integration_tests {
         assert_eq!(42, c_program_test("declare_autovar1"));
     }
     #[test]
-    #[ignore]
     fn while1_test() {
         assert_eq!(10, c_program_test("while1"));
     }

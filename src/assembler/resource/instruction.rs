@@ -1,39 +1,138 @@
-use crate::assembler::resource::Opcode;
+mod add;
+pub use add::*;
+mod call;
+pub use call::*;
+mod cmp;
+pub use cmp::*;
+mod mov;
+pub use mov::*;
+mod push;
+pub use push::*;
+mod pop;
+pub use pop::*;
+mod sub;
+pub use sub::*;
+mod lea;
+pub use lea::*;
+mod imul;
+pub use imul::*;
+mod idiv;
+pub use idiv::*;
+mod inc;
+pub use inc::*;
+mod jmp;
+pub use jmp::*;
+mod neg;
+pub use neg::*;
+mod syscall;
+pub use syscall::*;
+mod ret;
+pub use ret::*;
+mod endbr64;
+pub use endbr64::*;
 
-/// An implementation of x64 instruction.
-#[allow(dead_code)]
-#[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone)]
-pub struct Instruction {
-    pub opcode: Opcode,
-}
+use super::{Displacement, Immediate, ModRM, Operand, REXPrefix, SIBByte};
 
-#[allow(dead_code)]
-impl Instruction {
-    // assembling for each instructions.
-    pub fn to_bytes(&self) -> Vec<u8> {
+pub trait Instruction {
+    fn opcode(&self) -> Vec<u8>;
+    fn name(&self) -> InstName;
+    fn encoding(&self) -> Encoding {
+        Encoding::ZO
+    }
+    fn operand_1(&self) -> Option<Operand> {
+        None
+    }
+    fn rex_prefix(&self) -> Option<REXPrefix> {
+        None
+    }
+    fn modrm(&self) -> Option<ModRM> {
+        None
+    }
+    fn sib_byte(&self) -> Option<SIBByte> {
+        None
+    }
+    fn displacement(&self) -> Option<Displacement> {
+        None
+    }
+    fn immediate(&self) -> Option<Immediate> {
+        None
+    }
+
+    fn assemble(&self) -> Vec<u8> {
         let mut codes = Vec::new();
 
-        if let Some(rex_prefix) = self.opcode.rex_prefix() {
+        if let Some(rex_prefix) = self.rex_prefix() {
             codes.push(rex_prefix.to_byte());
         }
 
-        codes.append(&mut self.opcode.to_bytes());
+        codes.append(&mut self.opcode());
 
-        if let Some(modrm) = self.opcode.modrm() {
+        if let Some(modrm) = self.modrm() {
             codes.push(modrm.to_byte());
         }
 
-        if let Some(sib_byte) = self.opcode.sib_bite() {
+        if let Some(sib_byte) = self.sib_byte() {
             codes.push(sib_byte.to_byte());
         }
 
-        if let Some(disp) = self.opcode.get_displacement() {
+        if let Some(disp) = self.displacement() {
             codes.append(&mut disp.to_bytes());
         }
 
-        if let Some(imm) = self.opcode.get_immediate() {
+        if let Some(imm) = self.immediate() {
             codes.append(&mut imm.to_bytes());
         }
         codes
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
+pub enum InstName {
+    Call,
+    Jmp,
+}
+
+pub struct Group {
+    pub label: String,
+    pub insts: Vec<Box<dyn Instruction>>,
+}
+
+#[allow(dead_code)]
+#[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
+pub enum Encoding {
+    ZO,
+    D,
+
+    /// Ope1 -> ModRM:reg,   Ope2 -> ModRM:r/m
+    RM,
+    /// Ope1 -> ModRM:r/m,   Ope2 -> ModRM:reg
+    MR,
+    /// Ope1 -> ModRM:r/m,   Ope2 -> imm8/16/32/64
+    MI,
+    /// Ope1 -> opcode + rd, Ope2 -> imm8/16/32/64
+    OI,
+    /// Ope1 -> opcode + rd
+    O,
+    /// Ope1 -> imm8/16/32
+    I,
+    /// Ope1 -> ModRM:r/m
+    M,
+}
+
+impl Group {
+    pub fn new(label: &str) -> Self {
+        Self {
+            label: label.to_string(),
+            insts: Vec::new(),
+        }
+    }
+}
+
+impl Default for Group {
+    fn default() -> Self {
+        Self {
+            label: String::new(),
+            insts: Vec::new(),
+        }
     }
 }

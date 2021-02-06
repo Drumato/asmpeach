@@ -137,14 +137,14 @@ impl Context {
         sym_name: &str,
         opcode: &str,
     ) {
-        let opcode = match opcode {
-            "ret" => Opcode::RET,
-            "endbr64" => Opcode::ENDBR64,
-            "syscall" => Opcode::SYSCALL,
+        let inst: Box<dyn Instruction> = match opcode {
+            "ret" => Box::new(Ret()),
+            "endbr64" => Box::new(EndBr64()),
+            "syscall" => Box::new(SysCall()),
             _ => panic!("not implemented generating '{}' yet", opcode),
         };
 
-        self.push_inst_cur_sym(sym_name, Instruction { opcode });
+        self.push_inst_cur_sym(sym_name, inst);
         assert!(iter.next().is_none());
     }
 
@@ -158,23 +158,17 @@ impl Context {
         assert!(operand.is_some());
 
         let operand = Self::parse_operand(operand.unwrap());
-        let opcode = match opcode {
-            "pushq" => Opcode::push(OperandSize::QWORD, operand),
-            "popq" => Opcode::pop(OperandSize::QWORD, operand),
-            "call" => Opcode::call(operand),
-            "jle" => Opcode::JLELABEL {
-                label: operand.copy_label(),
-            },
-            "je" => Opcode::JELABEL {
-                label: operand.copy_label(),
-            },
-            "jmp" => Opcode::JMPLABEL {
-                label: operand.copy_label(),
-            },
+        let inst: Box<dyn Instruction> = match opcode {
+            "pushq" => Box::new(Push::new(OperandSize::Qword, operand)),
+            "popq" => Box::new(Pop::new(OperandSize::Qword, operand)),
+            "call" => Box::new(Call::new(operand)),
+            "jle" => Box::new(Jmp::LessThanEqual(operand)),
+            "je" => Box::new(Jmp::Equal(operand)),
+            "jmp" => Box::new(Jmp::Unconditional(operand)),
             _ => panic!("not implemented generating '{}' yet", opcode),
         };
 
-        self.push_inst_cur_sym(sym_name, Instruction { opcode });
+        self.push_inst_cur_sym(sym_name, inst);
         assert!(iter.next().is_none());
     }
 
@@ -192,21 +186,61 @@ impl Context {
         assert!(dst.is_some());
         let dst_op = Self::parse_operand(dst.unwrap());
 
-        let opcode = match opcode {
-            "addl" => Opcode::add(OperandSize::DWORD, src_op.to_32bit(), dst_op.to_32bit()),
-            "addq" => Opcode::add(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
-            "cmpq" => Opcode::cmp(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
-            "subq" => Opcode::sub(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
-            "leaq" => Opcode::lea(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
-            "imulq" => Opcode::imul(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
-            "movb" => Opcode::mov(OperandSize::BYTE, src_op.to_8bit(), dst_op.to_8bit()),
-            "movw" => Opcode::mov(OperandSize::WORD, src_op.to_16bit(), dst_op.to_16bit()),
-            "movl" => Opcode::mov(OperandSize::DWORD, src_op.to_32bit(), dst_op.to_32bit()),
-            "movq" => Opcode::mov(OperandSize::QWORD, src_op.to_64bit(), dst_op.to_64bit()),
+        let inst = match opcode {
+            "addl" => Box::new(Add::new(
+                OperandSize::Dword,
+                src_op.to_32bit(),
+                dst_op.to_32bit(),
+            )) as Box<dyn Instruction>,
+            "addq" => Box::new(Add::new(
+                OperandSize::Qword,
+                src_op.to_64bit(),
+                dst_op.to_64bit(),
+            )) as Box<dyn Instruction>,
+            "cmpq" => Box::new(Cmp::new(
+                OperandSize::Qword,
+                src_op.to_64bit(),
+                dst_op.to_64bit(),
+            )) as Box<dyn Instruction>,
+            "subq" => Box::new(Sub::new(
+                OperandSize::Qword,
+                src_op.to_64bit(),
+                dst_op.to_64bit(),
+            )),
+            "leaq" => Box::new(Lea::new(
+                OperandSize::Qword,
+                src_op.to_64bit(),
+                dst_op.to_64bit(),
+            )),
+            "imulq" => Box::new(IMul::new(
+                OperandSize::Qword,
+                src_op.to_64bit(),
+                dst_op.to_64bit(),
+            )) as Box<dyn Instruction>,
+            "movb" => Box::new(Mov::new(
+                OperandSize::Byte,
+                src_op.to_8bit(),
+                dst_op.to_8bit(),
+            )) as Box<dyn Instruction>,
+            "movw" => Box::new(Mov::new(
+                OperandSize::Word,
+                src_op.to_16bit(),
+                dst_op.to_16bit(),
+            )) as Box<dyn Instruction>,
+            "movl" => Box::new(Mov::new(
+                OperandSize::Dword,
+                src_op.to_32bit(),
+                dst_op.to_32bit(),
+            )) as Box<dyn Instruction>,
+            "movq" => Box::new(Mov::new(
+                OperandSize::Qword,
+                src_op.to_64bit(),
+                dst_op.to_64bit(),
+            )) as Box<dyn Instruction>,
             _ => panic!("not implemented generating '{}' yet", opcode),
         };
 
-        self.push_inst_cur_sym(sym_name, Instruction { opcode });
+        self.push_inst_cur_sym(sym_name, inst);
         assert!(iter.next().is_none());
     }
 
@@ -219,7 +253,7 @@ impl Context {
 
         // レジスタの場合
         if stripped.starts_with('%') {
-            return Operand::GENERALREGISTER(GeneralPurposeRegister::from_at_string(&stripped));
+            return Operand::GeneralReg(GeneralPurposeRegister::from_at_string(&stripped));
         }
 
         // 即値の場合
@@ -239,7 +273,7 @@ impl Context {
 
         // '(' がない => label
         if !stripped.contains("(") {
-            return Operand::LABEL(Self::remove_double_quote(&stripped));
+            return Operand::Label(Self::remove_double_quote(&stripped));
         }
 
         // メモリオペランド
@@ -250,9 +284,9 @@ impl Context {
             // 単純なでリファレンス
             "" => None,
             disp => match disp.parse::<i8>() {
-                Ok(v) => Some(Displacement::DISP8(v)),
+                Ok(v) => Some(Displacement::Disp8(v)),
                 Err(_e) => match stripped.parse::<i32>() {
-                    Ok(v) => Some(Displacement::DISP32(v)),
+                    Ok(v) => Some(Displacement::Disp32(v)),
                     // offset無し
                     Err(_e) => None,
                 },
@@ -274,12 +308,12 @@ impl Context {
             None => None,
         };
 
-        Operand::ADDRESSING {
+        Operand::Memory(OpMemory {
             index: index_reg,
             base: base_reg,
             disp: displacement,
             scale,
-        }
+        })
     }
 
     fn is_directive_start(&self, directive: &str) -> bool {
@@ -290,7 +324,7 @@ impl Context {
         }
     }
 
-    fn push_inst_cur_sym(&mut self, sym_name: &str, inst: Instruction) {
+    fn push_inst_cur_sym(&mut self, sym_name: &str, inst: Box<dyn Instruction>) {
         if let Some(sym) = self.syms.get_mut(sym_name) {
             if sym.groups.is_empty() {
                 sym.groups
@@ -320,196 +354,5 @@ impl Context {
 
     fn is_blank_line(line: &str) -> bool {
         line.trim_end().is_empty()
-    }
-}
-
-#[cfg(test)]
-mod parse_tests {
-    use super::*;
-
-    #[test]
-    fn parse_symname_test() {
-        let mut ctxt = new_context();
-        ctxt.toplevel("main:    \n");
-
-        assert!(!ctxt.syms.is_empty());
-        assert_eq!(State::InSymbol("main".to_string()), ctxt.state);
-        assert!(ctxt.syms.get("main").is_some());
-
-        ctxt.toplevel("\"aarch64::main\":    \n");
-
-        assert!(!ctxt.syms.is_empty());
-        assert_eq!(State::InSymbol("aarch64::main".to_string()), ctxt.state);
-        assert!(ctxt.syms.get("aarch64::main").is_some());
-    }
-
-    #[test]
-    fn parse_global_directive_test() {
-        let mut ctxt = new_context();
-        ctxt.toplevel("    .global main    \n");
-
-        assert!(!ctxt.syms.is_empty());
-        assert_eq!(State::TopLevel, ctxt.state);
-        assert!(ctxt.syms.get("main").unwrap().is_global());
-    }
-
-    #[test]
-    fn parse_type_directive_test() {
-        let mut ctxt = new_context();
-        ctxt.toplevel("    .type    main, @function    \n");
-
-        assert!(!ctxt.syms.is_empty());
-        assert_eq!(State::TopLevel, ctxt.state);
-        assert!(ctxt.syms.get("main").unwrap().is_function());
-    }
-
-    #[test]
-    fn parse_pushq_test() {
-        let mut ctxt = new_context();
-        ctxt.toplevel("main:    \n");
-        ctxt.in_symbol("pushq %rax", "main");
-        assert_eq!(
-            Opcode::PUSHR64 {
-                r64: GeneralPurposeRegister::RAX
-            },
-            ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
-        );
-    }
-
-    #[test]
-    fn parse_popq_test() {
-        let mut ctxt = new_context();
-        ctxt.toplevel("main:    \n");
-        ctxt.in_symbol("    popq %rax", "main");
-        assert_eq!(
-            Opcode::POPR64 {
-                r64: GeneralPurposeRegister::RAX
-            },
-            ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
-        );
-
-        ctxt.in_symbol("    popq     %rbp", "main");
-        assert_eq!(
-            Opcode::POPR64 {
-                r64: GeneralPurposeRegister::RBP
-            },
-            ctxt.syms.get("main").unwrap().groups[0].insts[1].opcode
-        );
-    }
-
-    #[test]
-    fn parse_moveq_test() {
-        let mut ctxt = new_context();
-        ctxt.toplevel("main:    \n");
-        ctxt.in_symbol("movq $42, %rax", "main");
-        assert_eq!(
-            Opcode::MOVRM64IMM32 {
-                imm: Immediate::I32(42),
-                rm64: Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
-            },
-            ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
-        );
-
-        ctxt.in_symbol("movq $3, -24(%rbp)", "main");
-        assert_eq!(
-            Opcode::MOVRM64IMM32 {
-                imm: Immediate::I32(3),
-                rm64: Operand::ADDRESSING {
-                    base: GeneralPurposeRegister::RBP,
-                    index: None,
-                    disp: Some(Displacement::DISP8(-24)),
-                    scale: None,
-                },
-            },
-            ctxt.syms.get("main").unwrap().groups[0].insts[1].opcode
-        );
-    }
-
-    #[test]
-    fn parse_ret_test() {
-        let mut ctxt = new_context();
-        ctxt.toplevel("main:    \n");
-
-        ctxt.in_symbol("  ret\n", "main");
-        assert_eq!(State::InSymbol("main".to_string()), ctxt.state);
-        assert_eq!(1, ctxt.syms.get("main").unwrap().groups[0].insts.len());
-        assert_eq!(
-            Opcode::RET,
-            ctxt.syms.get("main").unwrap().groups[0].insts[0].opcode
-        );
-    }
-
-    #[test]
-    fn parse_operand_test() {
-        assert_eq!(
-            Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
-            Context::parse_operand("%rax")
-        );
-        assert_eq!(
-            Operand::GENERALREGISTER(GeneralPurposeRegister::RAX),
-            Context::parse_operand("%rax,")
-        );
-        assert_eq!(
-            Operand::Immediate(Immediate::I8(30)),
-            Context::parse_operand("$30")
-        );
-        assert_eq!(
-            Operand::ADDRESSING {
-                base: GeneralPurposeRegister::RAX,
-                index: None,
-                disp: None,
-                scale: None,
-            },
-            Context::parse_operand("(%rax)"),
-        );
-        assert_eq!(
-            Operand::ADDRESSING {
-                base: GeneralPurposeRegister::RAX,
-                index: None,
-                disp: Some(Displacement::DISP8(-8)),
-                scale: None,
-            },
-            Context::parse_operand("-8(%rax)"),
-        );
-        assert_eq!(
-            Operand::ADDRESSING {
-                base: GeneralPurposeRegister::RAX,
-                index: Some(GeneralPurposeRegister::RBX),
-                disp: Some(Displacement::DISP8(-8)),
-                scale: None,
-            },
-            Context::parse_operand("-8(%rax, %rbx)"),
-        );
-        assert_eq!(
-            Operand::ADDRESSING {
-                base: GeneralPurposeRegister::RAX,
-                index: Some(GeneralPurposeRegister::RBX),
-                disp: Some(Displacement::DISP8(16)),
-                scale: Some(4),
-            },
-            Context::parse_operand("16(%rax, %rbx, 4)"),
-        );
-    }
-
-    #[test]
-    fn is_blank_line_test() {
-        assert!(Context::is_blank_line("\n"));
-        assert!(Context::is_blank_line("        \n"));
-        assert!(Context::is_blank_line("\t\t\t\t\n"));
-    }
-
-    #[test]
-    fn remove_double_quote_test() {
-        assert_eq!(
-            "main::entry".to_string(),
-            Context::remove_double_quote("\"main::entry\"")
-        );
-    }
-
-    fn new_context() -> Context {
-        Context {
-            state: State::TopLevel,
-            syms: IndexMap::new(),
-        }
     }
 }

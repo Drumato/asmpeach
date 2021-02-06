@@ -1,6 +1,8 @@
 use fmt::Formatter;
 use std::fmt;
 
+use super::OperandSize;
+
 #[allow(dead_code)]
 #[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
 pub enum GeneralPurposeRegister {
@@ -81,48 +83,47 @@ impl GeneralPurposeRegister {
             GeneralPurposeRegister::AL
             | GeneralPurposeRegister::AX
             | GeneralPurposeRegister::EAX
-            | GeneralPurposeRegister::RAX => 0,
+            | GeneralPurposeRegister::RAX
+            | GeneralPurposeRegister::R8 => 0,
             GeneralPurposeRegister::CL
             | GeneralPurposeRegister::CX
             | GeneralPurposeRegister::ECX
-            | GeneralPurposeRegister::RCX => 1,
+            | GeneralPurposeRegister::RCX
+            | GeneralPurposeRegister::R9 => 1,
             GeneralPurposeRegister::DL
             | GeneralPurposeRegister::DX
             | GeneralPurposeRegister::EDX
-            | GeneralPurposeRegister::RDX => 2,
+            | GeneralPurposeRegister::RDX
+            | GeneralPurposeRegister::R10 => 2,
             GeneralPurposeRegister::BL
             | GeneralPurposeRegister::BX
             | GeneralPurposeRegister::EBX
-            | GeneralPurposeRegister::RBX => 3,
+            | GeneralPurposeRegister::RBX
+            | GeneralPurposeRegister::R11 => 3,
             GeneralPurposeRegister::AH
             | GeneralPurposeRegister::SP
             | GeneralPurposeRegister::ESP
-            | GeneralPurposeRegister::RSP => 4,
+            | GeneralPurposeRegister::RSP
+            | GeneralPurposeRegister::R12 => 4,
             GeneralPurposeRegister::CH
             | GeneralPurposeRegister::BP
             | GeneralPurposeRegister::EBP
-            | GeneralPurposeRegister::RBP => 5,
+            | GeneralPurposeRegister::RBP
+            | GeneralPurposeRegister::R13 => 5,
             GeneralPurposeRegister::DH
             | GeneralPurposeRegister::SI
             | GeneralPurposeRegister::ESI
-            | GeneralPurposeRegister::RSI => 6,
+            | GeneralPurposeRegister::RSI
+            | GeneralPurposeRegister::R14 => 6,
             GeneralPurposeRegister::BH
             | GeneralPurposeRegister::DI
             | GeneralPurposeRegister::EDI
-            | GeneralPurposeRegister::RDI => 7,
-
-            GeneralPurposeRegister::R8 => 8,
-            GeneralPurposeRegister::R9 => 9,
-            GeneralPurposeRegister::R10 => 10,
-            GeneralPurposeRegister::R11 => 11,
-            GeneralPurposeRegister::R12 => 12,
-            GeneralPurposeRegister::R13 => 13,
-            GeneralPurposeRegister::R14 => 14,
-            GeneralPurposeRegister::R15 => 15,
+            | GeneralPurposeRegister::RDI
+            | GeneralPurposeRegister::R15 => 7,
         }
     }
 
-    pub fn size(&self) -> RegisterSize {
+    pub fn size(&self) -> OperandSize {
         match self {
             // 8bit
             GeneralPurposeRegister::AL
@@ -132,7 +133,7 @@ impl GeneralPurposeRegister {
             | GeneralPurposeRegister::AH
             | GeneralPurposeRegister::CH
             | GeneralPurposeRegister::DH
-            | GeneralPurposeRegister::BH => RegisterSize::S8,
+            | GeneralPurposeRegister::BH => OperandSize::Byte,
 
             // 32bit
             GeneralPurposeRegister::EAX
@@ -142,8 +143,8 @@ impl GeneralPurposeRegister {
             | GeneralPurposeRegister::ESP
             | GeneralPurposeRegister::EBP
             | GeneralPurposeRegister::ESI
-            | GeneralPurposeRegister::EDI => RegisterSize::S32,
-            _ => RegisterSize::S64,
+            | GeneralPurposeRegister::EDI => OperandSize::Dword,
+            _ => OperandSize::Qword,
         }
     }
 
@@ -336,15 +337,6 @@ impl GeneralPurposeRegister {
 
 impl fmt::Display for GeneralPurposeRegister {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Register::{}", self.to_str())
+        write!(f, "{}", self.to_at_string())
     }
-}
-
-#[allow(dead_code)]
-#[derive(Eq, Ord, PartialOrd, PartialEq, Debug, Clone, Copy)]
-pub enum RegisterSize {
-    S8,
-    S16,
-    S32,
-    S64,
 }

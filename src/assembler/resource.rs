@@ -1,9 +1,6 @@
 mod elf_builder;
-mod encoding;
-mod group;
 mod instruction;
 mod modrm;
-mod opcode;
 mod operand;
 mod relocation;
 mod rex_prefix;
@@ -12,11 +9,8 @@ mod symbol;
 mod syntax;
 
 pub use elf_builder::*;
-pub use encoding::*;
-pub use group::*;
 pub use instruction::*;
 pub use modrm::*;
-pub use opcode::*;
 pub use operand::*;
 pub use relocation::*;
 pub use rex_prefix::*;

@@ -1,8 +1,8 @@
-use crate::assembler::resource::Group;
 use elf_utilities::symbol;
 
+use super::Group;
+
 #[allow(dead_code)]
-#[derive(Eq, Ord, PartialOrd, PartialEq, Debug)]
 pub struct Symbol {
     pub groups: Vec<Group>,
     /// Symbol Bind(GLOBAL/LOCAL/etc.)
