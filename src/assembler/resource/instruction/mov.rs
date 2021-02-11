@@ -37,6 +37,8 @@ pub enum Mov {
         r32: GeneralPurposeRegister,
     },
 
+    /// Move imm32 to r/m32
+    Imm32ToRM32 { imm32: Immediate, rm32: Operand },
     /// Move imm32 to r/m64
     Imm32ToRM64 { imm32: Immediate, rm64: Operand },
 }
@@ -60,7 +62,7 @@ impl Instruction for Mov {
             Mov::Imm32ToR32 { r32, .. } => vec![0xb8 + r32.number()],
             Mov::R64ToRM64 { .. } => vec![0x89],
             Mov::RM64ToR64 { .. } => vec![0x8b],
-            Mov::Imm32ToRM64 { .. } => vec![0xc7],
+            Mov::Imm32ToRM32 { .. } | Mov::Imm32ToRM64 { .. } => vec![0xc7],
         }
     }
 
@@ -94,7 +96,9 @@ impl Instruction for Mov {
     }
     fn modrm(&self) -> Option<ModRM> {
         match self {
+            Mov::Imm32ToRM32 { rm32, .. } => Some(ModRM::new_mi(rm32.addressing_mode(), rm32)),
             Mov::Imm32ToRM64 { rm64, .. } => Some(ModRM::new_mi(rm64.addressing_mode(), rm64)),
+            Mov::RM32ToR32 { rm32, r32 } => Some(ModRM::new(self.encoding(), r32, rm32)),
             Mov::R32ToRM32 { rm32, r32 } => Some(ModRM::new(self.encoding(), r32, rm32)),
             Mov::R64ToRM64 { rm64, r64 } => Some(ModRM::new(self.encoding(), r64, rm64)),
             _ => None,
@@ -102,7 +106,9 @@ impl Instruction for Mov {
     }
     fn immediate(&self) -> Option<Immediate> {
         match self {
-            Mov::Imm32ToRM64 { imm32, .. } | Mov::Imm32ToR32 { imm32, .. } => Some(*imm32),
+            Mov::Imm32ToRM64 { imm32, .. }
+            | Mov::Imm32ToRM32 { imm32, .. }
+            | Mov::Imm32ToR32 { imm32, .. } => Some(*imm32),
 
             _ => None,
         }
@@ -110,15 +116,18 @@ impl Instruction for Mov {
     fn displacement(&self) -> Option<Displacement> {
         match self {
             Mov::Imm32ToRM64 { rm64: rm, .. }
+            | Mov::Imm32ToRM32 { rm32: rm, .. }
             | Mov::R32ToRM32 { rm32: rm, .. }
+            | Mov::RM32ToR32 { rm32: rm, .. }
             | Mov::R64ToRM64 { rm64: rm, .. } => rm.displacement(),
             _ => None,
         }
     }
     fn encoding(&self) -> Encoding {
         match self {
-            Mov::Imm32ToRM64 { .. } => Encoding::MI,
+            Mov::Imm32ToRM64 { .. } | Mov::Imm32ToRM32 { .. } => Encoding::MI,
             Mov::Imm32ToR32 { .. } => Encoding::OI,
+            Mov::RM32ToR32 { .. } => Encoding::RM,
             Mov::R32ToRM32 { .. } | Mov::R64ToRM64 { .. } => Encoding::MR,
             _ => todo!(),
         }
@@ -138,13 +147,14 @@ fn mov_qword(src: Operand, dst: Operand) -> Mov {
 }
 
 fn mov_dword(src: Operand, dst: Operand) -> Mov {
-    match src {
+    match &src {
         Operand::Immediate(imm) => match imm {
-            Immediate::I8(v) => mov_imm8_to_dword(v, dst),
-            Immediate::I32(_v) => mov_imm32_to_dword(imm, dst),
+            Immediate::I8(v) => mov_imm8_to_dword(*v, dst),
+            Immediate::I32(_v) => mov_imm32_to_dword(*imm, dst),
             _ => panic_gen_binop_inst("mov", src, dst),
         },
-        Operand::GeneralReg(reg) => mov_dword_reg_to(reg, dst),
+        Operand::GeneralReg(reg) => mov_dword_reg_to(*reg, dst),
+        Operand::Memory(_mem) => mov_dword_mem_to(src, dst),
         _ => panic_gen_binop_inst("mov", src, dst),
     }
 }
@@ -153,10 +163,14 @@ fn mov_dword(src: Operand, dst: Operand) -> Mov {
 /// 例えばr/m32にmov可能なのはimm32のみである．
 /// よって，引数にはImmediateではなくraw valueを渡しておく．
 fn mov_imm8_to_dword(imm: i8, dst: Operand) -> Mov {
-    match dst {
+    match &dst {
         Operand::GeneralReg(reg) => Mov::Imm32ToR32 {
             imm32: Immediate::I32(imm as i32),
-            r32: reg,
+            r32: *reg,
+        },
+        Operand::Memory(_mem) => Mov::Imm32ToRM32 {
+            imm32: Immediate::I32(imm as i32),
+            rm32: dst,
         },
         _ => panic_gen_binop_inst("mov", imm, dst),
     }
@@ -203,6 +217,15 @@ fn mov_imm32_to_qword(imm: Immediate, dst: Operand) -> Mov {
     }
 }
 
+fn mov_dword_mem_to(mem: Operand, dst: Operand) -> Mov {
+    match &dst {
+        Operand::GeneralReg(reg) => Mov::RM32ToR32 {
+            r32: *reg,
+            rm32: mem,
+        },
+        _ => panic_gen_binop_inst("mov", mem, dst),
+    }
+}
 fn mov_dword_reg_to(reg: GeneralPurposeRegister, dst: Operand) -> Mov {
     match &dst {
         Operand::GeneralReg(_dst) => Mov::R32ToRM32 {

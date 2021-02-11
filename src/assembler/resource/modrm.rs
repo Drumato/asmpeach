@@ -16,6 +16,7 @@ impl ModRM {
     pub fn new(encoding: Encoding, reg: &GeneralPurposeRegister, rm: &Operand) -> Self {
         match encoding {
             Encoding::MR => Self::new_mr(rm.addressing_mode(), reg, rm),
+            Encoding::RM => Self::new_rm(rm.addressing_mode(), reg, rm),
             _ => todo!(),
         }
     }
