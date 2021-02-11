@@ -31,6 +31,10 @@ pub enum Add {
     Imm8ToRM64 { imm8: Immediate, rm64: Operand },
     /// Add imm32 to RM64
     Imm32ToRM64 { imm32: Immediate, rm64: Operand },
+    /// Add imm8 to RM32
+    Imm8ToRM32 { imm8: Immediate, rm32: Operand },
+    /// Add imm32 to RM32
+    Imm32ToRM32 { imm32: Immediate, rm32: Operand },
 }
 impl Add {
     pub fn new(size: OperandSize, src: Operand, dst: Operand) -> Self {
@@ -117,20 +121,11 @@ fn add_dword(src: Operand, dst: Operand) -> Add {
     match src {
         Operand::GeneralReg(src_gpr) => add_dword_reg_to(src_gpr, dst),
         Operand::Immediate(imm) => match imm {
-            Immediate::I8(_v) => add_imm8_to(imm, dst),
-            Immediate::I16(_v) => add_imm16_to(imm, dst),
-            Immediate::I32(_v) => add_imm32_to(imm, dst),
+            Immediate::I8(_v) => add_imm8_to_dword(imm, dst),
+            Immediate::I32(_v) => add_imm32_to_dword(imm, dst),
+            _ => panic!("cannot generate 'add {}, {}'", src, dst),
         },
         _ => panic!("cannot generate 'add {}, {}'", src, dst),
-    }
-}
-
-fn add_imm8_to(imm: Immediate, dst: Operand) -> Add {
-    match dst {
-        Operand::GeneralReg(dst) => match dst.size() {
-            _ => panic!("cannot generate 'add {}, {}'", imm, dst),
-        },
-        _ => panic!("cannot generate 'add {}, {}'", imm, dst),
     }
 }
 
@@ -163,14 +158,76 @@ fn add_dword_reg_to(src: GeneralPurposeRegister, dst: Operand) -> Add {
             r32: src,
             rm32: dst,
         },
+
         _ => panic!("cannot generate 'add {}, {}'", src, dst),
     }
 }
 
 fn add_qword(src: Operand, dst: Operand) -> Add {
-    todo!()
+    match src {
+        Operand::Immediate(imm) => match imm {
+            Immediate::I8(_v) => add_imm8_to_qword(imm, dst),
+            Immediate::I32(_v) => add_imm32_to_qword(imm, dst),
+            _ => panic!("cannot generate 'add {}, {}'", src, dst),
+        },
+        _ => panic!("cannot generate 'add {}, {}'", src, dst),
+    }
+}
+fn add_imm8_to_dword(imm: Immediate, dst: Operand) -> Add {
+    match &dst {
+        Operand::GeneralReg(_reg) => Add::Imm8ToRM32 {
+            imm8: imm,
+            rm32: dst,
+        },
+        Operand::Memory(_mem) => Add::Imm8ToRM32 {
+            imm8: imm,
+            rm32: dst,
+        },
+        _ => panic!("cannot generate 'add {}, {}'", imm, dst),
+    }
 }
 
+fn add_imm32_to_dword(imm: Immediate, dst: Operand) -> Add {
+    match &dst {
+        Operand::GeneralReg(_reg) => Add::Imm32ToRM32 {
+            imm32: imm,
+            rm32: dst,
+        },
+        Operand::Memory(_mem) => Add::Imm32ToRM32 {
+            imm32: imm,
+            rm32: dst,
+        },
+        _ => panic!("cannot generate 'add {}, {}'", imm, dst),
+    }
+}
+
+fn add_imm8_to_qword(imm: Immediate, dst: Operand) -> Add {
+    match &dst {
+        Operand::GeneralReg(_reg) => Add::Imm8ToRM64 {
+            imm8: imm,
+            rm64: dst,
+        },
+        Operand::Memory(_mem) => Add::Imm8ToRM64 {
+            imm8: imm,
+            rm64: dst,
+        },
+        _ => panic!("cannot generate 'add {}, {}'", imm, dst),
+    }
+}
+
+fn add_imm32_to_qword(imm: Immediate, dst: Operand) -> Add {
+    match &dst {
+        Operand::GeneralReg(_reg) => Add::Imm32ToRM64 {
+            imm32: imm,
+            rm64: dst,
+        },
+        Operand::Memory(_mem) => Add::Imm32ToRM64 {
+            imm32: imm,
+            rm64: dst,
+        },
+        _ => panic!("cannot generate 'add {}, {}'", imm, dst),
+    }
+}
 #[cfg(test)]
 mod r64_to_rm64_tests {
     use super::*;
@@ -290,6 +347,23 @@ mod imm_to_rm64_tests {
 
         assert_eq!(vec![0x48, 0x83, 0xc0, 0x03], inst.assemble());
     }
+
+    #[test]
+    fn imm8_test2() {
+        let inst = imm_and_reg_setup(
+            OperandSize::Byte,
+            Immediate::I8(3),
+            Operand::Memory(OpMemory {
+                base: GeneralPurposeRegister::RBP,
+                index: None,
+                disp: Some(Displacement::Disp8(-8)),
+                scale: None,
+            }),
+        );
+
+        assert_eq!(vec![0x48, 0x83, 0x45, 0xf8, 0x03], inst.assemble());
+    }
+
     #[test]
     fn imm32_test1() {
         let inst = imm_and_reg_setup(
@@ -300,6 +374,25 @@ mod imm_to_rm64_tests {
 
         assert_eq!(
             vec![0x48, 0x81, 0xc0, 0x03, 0x00, 0x00, 0x00],
+            inst.assemble()
+        );
+    }
+
+    #[test]
+    fn imm32_test2() {
+        let inst = imm_and_reg_setup(
+            OperandSize::Dword,
+            Immediate::I32(3),
+            Operand::Memory(OpMemory {
+                base: GeneralPurposeRegister::RBP,
+                index: None,
+                disp: Some(Displacement::Disp8(-8)),
+                scale: None,
+            }),
+        );
+
+        assert_eq!(
+            vec![0x48, 0x81, 0x45, 0xf8, 0x03, 0x00, 0x00, 0x00],
             inst.assemble()
         );
     }

@@ -45,6 +45,16 @@ pub enum GeneralPurposeRegister {
     /// Base Register
     EBX,
 
+    // 32bit x64 appended registers
+    R8D,
+    R9D,
+    R10D,
+    R11D,
+    R12D,
+    R13D,
+    R14D,
+    R15D,
+
     // 64bit general-purpose registers
     /// Accumulator Register
     RAX,
@@ -64,7 +74,7 @@ pub enum GeneralPurposeRegister {
     /// Base Register
     RBX,
 
-    // x64 appended registers
+    // 64bit x64 appended registers
     R8,
     R9,
     R10,
@@ -83,41 +93,49 @@ impl GeneralPurposeRegister {
             GeneralPurposeRegister::AL
             | GeneralPurposeRegister::AX
             | GeneralPurposeRegister::EAX
+            | GeneralPurposeRegister::R8D
             | GeneralPurposeRegister::RAX
             | GeneralPurposeRegister::R8 => 0,
             GeneralPurposeRegister::CL
             | GeneralPurposeRegister::CX
             | GeneralPurposeRegister::ECX
+            | GeneralPurposeRegister::R9D
             | GeneralPurposeRegister::RCX
             | GeneralPurposeRegister::R9 => 1,
             GeneralPurposeRegister::DL
             | GeneralPurposeRegister::DX
             | GeneralPurposeRegister::EDX
+            | GeneralPurposeRegister::R10D
             | GeneralPurposeRegister::RDX
             | GeneralPurposeRegister::R10 => 2,
             GeneralPurposeRegister::BL
             | GeneralPurposeRegister::BX
             | GeneralPurposeRegister::EBX
+            | GeneralPurposeRegister::R11D
             | GeneralPurposeRegister::RBX
             | GeneralPurposeRegister::R11 => 3,
             GeneralPurposeRegister::AH
             | GeneralPurposeRegister::SP
             | GeneralPurposeRegister::ESP
+            | GeneralPurposeRegister::R12D
             | GeneralPurposeRegister::RSP
             | GeneralPurposeRegister::R12 => 4,
             GeneralPurposeRegister::CH
             | GeneralPurposeRegister::BP
             | GeneralPurposeRegister::EBP
+            | GeneralPurposeRegister::R13D
             | GeneralPurposeRegister::RBP
             | GeneralPurposeRegister::R13 => 5,
             GeneralPurposeRegister::DH
             | GeneralPurposeRegister::SI
             | GeneralPurposeRegister::ESI
+            | GeneralPurposeRegister::R14D
             | GeneralPurposeRegister::RSI
             | GeneralPurposeRegister::R14 => 6,
             GeneralPurposeRegister::BH
             | GeneralPurposeRegister::DI
             | GeneralPurposeRegister::EDI
+            | GeneralPurposeRegister::R15D
             | GeneralPurposeRegister::RDI
             | GeneralPurposeRegister::R15 => 7,
         }
@@ -143,7 +161,15 @@ impl GeneralPurposeRegister {
             | GeneralPurposeRegister::ESP
             | GeneralPurposeRegister::EBP
             | GeneralPurposeRegister::ESI
-            | GeneralPurposeRegister::EDI => OperandSize::Dword,
+            | GeneralPurposeRegister::EDI
+            | GeneralPurposeRegister::R8D
+            | GeneralPurposeRegister::R9D
+            | GeneralPurposeRegister::R10D
+            | GeneralPurposeRegister::R11D
+            | GeneralPurposeRegister::R12D
+            | GeneralPurposeRegister::R13D
+            | GeneralPurposeRegister::R14D
+            | GeneralPurposeRegister::R15D => OperandSize::Dword,
             _ => OperandSize::Qword,
         }
     }
@@ -160,7 +186,15 @@ impl GeneralPurposeRegister {
             | Self::R12
             | Self::R13
             | Self::R14
-            | Self::R15 => true,
+            | Self::R15
+            | Self::R8D
+            | Self::R9D
+            | Self::R10D
+            | Self::R11D
+            | Self::R12D
+            | Self::R13D
+            | Self::R14D
+            | Self::R15D => true,
             _ => false,
         }
     }
@@ -196,6 +230,14 @@ impl GeneralPurposeRegister {
             Self::EBP => "ebp",
             Self::ESI => "esi",
             Self::EDI => "edi",
+            Self::R8D => "r8d",
+            Self::R9D => "r9d",
+            Self::R10D => "r10d",
+            Self::R11D => "r11d",
+            Self::R12D => "r12d",
+            Self::R13D => "r13d",
+            Self::R14D => "r14d",
+            Self::R15D => "r15d",
 
             // 64bit general-purpose registers
             Self::RAX => "rax",
@@ -253,6 +295,14 @@ impl GeneralPurposeRegister {
             5 => GeneralPurposeRegister::EBP,
             6 => GeneralPurposeRegister::ESI,
             7 => GeneralPurposeRegister::EDI,
+            8 => GeneralPurposeRegister::R8D,
+            9 => GeneralPurposeRegister::R9D,
+            10 => GeneralPurposeRegister::R10D,
+            11 => GeneralPurposeRegister::R11D,
+            12 => GeneralPurposeRegister::R12D,
+            13 => GeneralPurposeRegister::R13D,
+            14 => GeneralPurposeRegister::R14D,
+            15 => GeneralPurposeRegister::R15D,
             _ => unimplemented!(),
         }
     }
@@ -311,21 +361,6 @@ impl GeneralPurposeRegister {
             _ => panic!("{} is not a register", s),
         }
     }
-
-    pub fn to_8bit(&self) -> Self {
-        Self::new_8bit_from_code(self.number() as usize)
-    }
-    pub fn to_16bit(&self) -> Self {
-        Self::new_16bit_from_code(self.number() as usize)
-    }
-    pub fn to_32bit(&self) -> Self {
-        Self::new_32bit_from_code(self.number() as usize)
-    }
-
-    pub fn to_64bit(&self) -> Self {
-        Self::new_64bit_from_code(self.number() as usize)
-    }
-
     pub fn to_intel_string(&self) -> String {
         self.to_str().to_string()
     }

@@ -40,7 +40,11 @@ impl std::fmt::Display for Operand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Operand::GeneralReg(gpr) => write!(f, "{}", gpr),
-            Operand::Memory(mem) => write!(f, "{:?}", mem),
+            Operand::Memory(mem) => write!(
+                f,
+                "Memory{{ base: {}, index: {:?}, disp: {:?}, scale: {:?} }}",
+                mem.base, mem.index, mem.disp, mem.scale
+            ),
             Operand::Label(l) => write!(f, "{}", l),
             Operand::Immediate(v) => write!(f, "{}", v),
         }
@@ -66,6 +70,7 @@ impl Operand {
     }
     /// 使用しているレジスタがx64拡張のものかチェック
     /// REX-Prefix の計算に使用
+    /// メモリオペランドの場合はbase-registerが拡張レジスタかどうかのチェックに用いる
     pub fn is_expanded(&self) -> bool {
         match self {
             Operand::Memory(mem) => mem.base.is_expanded(),
@@ -168,39 +173,6 @@ impl Operand {
         }
     }
 
-    pub fn to_intel_string(&self) -> String {
-        match self {
-            Operand::GeneralReg(gpr) => gpr.to_intel_string(),
-            Operand::Immediate(imm) => imm.to_intel_string(),
-            Operand::Label(s) => s.to_string(),
-            Operand::Memory(mem) => {
-                let size_ptr = match mem.base.size() {
-                    OperandSize::Byte => "BYTE PTR",
-                    OperandSize::Word => "WORD PTR",
-                    OperandSize::Dword => "DWORD PTR",
-                    OperandSize::Qword => "QWORD PTR",
-                };
-
-                let mut addressing = if mem.disp.is_some() {
-                    format!("{}[", mem.disp.unwrap().to_string())
-                } else {
-                    "[".to_string()
-                };
-                addressing += &mem.base.to_64bit().to_intel_string();
-
-                if let Some(index) = mem.index {
-                    addressing += &format!(" + {}", index.to_intel_string());
-                }
-                if let Some(s) = mem.scale {
-                    addressing += &format!(" * {}", s);
-                }
-                addressing += "]";
-
-                format!("{} {}", size_ptr, addressing)
-            }
-        }
-    }
-
     pub fn to_at_string(&self) -> String {
         match self {
             Operand::GeneralReg(gpr) => gpr.to_at_string(),
@@ -213,7 +185,7 @@ impl Operand {
                     String::new()
                 };
 
-                let mut addressing = mem.base.to_64bit().to_at_string();
+                let mut addressing = mem.base.to_at_string();
 
                 if let Some(index) = mem.index {
                     addressing += &format!(", {}", index.to_at_string());
@@ -227,72 +199,6 @@ impl Operand {
         }
     }
 
-    pub fn to_8bit(&self) -> Self {
-        match self {
-            Operand::GeneralReg(gpr) => Operand::GeneralReg(gpr.to_8bit()),
-            Operand::Immediate(imm) => Operand::Immediate(imm.as_8bit()),
-            Operand::Memory(mem) => Operand::Memory(OpMemory {
-                base: mem.base.to_8bit(),
-                index: match mem.index {
-                    Some(ireg) => Some(ireg.to_8bit()),
-                    None => None,
-                },
-                disp: mem.disp,
-                scale: mem.scale,
-            }),
-            Operand::Label(_label) => unreachable!(),
-        }
-    }
-    pub fn to_16bit(&self) -> Self {
-        match self {
-            Operand::GeneralReg(gpr) => Operand::GeneralReg(gpr.to_16bit()),
-            Operand::Immediate(imm) => Operand::Immediate(imm.as_16bit()),
-            Operand::Memory(mem) => Operand::Memory(OpMemory {
-                base: mem.base.to_16bit(),
-                index: match mem.index {
-                    Some(ireg) => Some(ireg.to_16bit()),
-                    None => None,
-                },
-                disp: mem.disp,
-                scale: mem.scale,
-            }),
-            Operand::Label(_label) => unreachable!(),
-        }
-    }
-    pub fn to_32bit(&self) -> Self {
-        match self {
-            Operand::GeneralReg(gpr) => Operand::GeneralReg(gpr.to_32bit()),
-            Operand::Immediate(imm) => Operand::Immediate(imm.as_32bit()),
-            Operand::Memory(mem) => Operand::Memory(OpMemory {
-                base: mem.base.to_32bit(),
-                index: match mem.index {
-                    Some(ireg) => Some(ireg.to_32bit()),
-                    None => None,
-                },
-                disp: mem.disp,
-                scale: mem.scale,
-            }),
-            Operand::Label(_label) => unreachable!(),
-        }
-    }
-
-    pub fn to_64bit(&self) -> Self {
-        match self {
-            Operand::GeneralReg(gpr) => Operand::GeneralReg(gpr.to_64bit()),
-            Operand::Immediate(imm) => Operand::Immediate(imm.as_32bit()),
-            Operand::Memory(mem) => Operand::Memory(OpMemory {
-                base: mem.base.to_64bit(),
-                index: match mem.index {
-                    Some(ireg) => Some(ireg.to_64bit()),
-                    None => None,
-                },
-                disp: mem.disp,
-                scale: mem.scale,
-            }),
-            Operand::Label(_label) => unreachable!(),
-        }
-    }
-
     pub fn size(&self) -> OperandSize {
         match self {
             Operand::GeneralReg(gpr) => gpr.size(),
@@ -302,6 +208,7 @@ impl Operand {
                 Immediate::I8(_v) => OperandSize::Byte,
                 Immediate::I16(_v) => OperandSize::Word,
                 Immediate::I32(_v) => OperandSize::Dword,
+                Immediate::I64(_v) => OperandSize::Qword,
             },
         }
     }

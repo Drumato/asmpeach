@@ -53,7 +53,7 @@ pub fn c_program_test(file_base: &str) -> i32 {
         .status()
         .expect("failed to spawn a process")
         .code()
-        .unwrap();
+        .expect("failed to get exit status");
 
     code
 }

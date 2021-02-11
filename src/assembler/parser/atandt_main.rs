@@ -138,7 +138,7 @@ impl Context {
         opcode: &str,
     ) {
         let inst: Box<dyn Instruction> = match opcode {
-            "ret" => Box::new(Ret()),
+            "retq" | "ret" => Box::new(Ret::Near),
             "endbr64" => Box::new(EndBr64()),
             "syscall" => Box::new(SysCall()),
             _ => panic!("not implemented generating '{}' yet", opcode),
@@ -186,57 +186,17 @@ impl Context {
         assert!(dst.is_some());
         let dst_op = Self::parse_operand(dst.unwrap());
 
-        let inst = match opcode {
-            "addl" => Box::new(Add::new(
-                OperandSize::Dword,
-                src_op.to_32bit(),
-                dst_op.to_32bit(),
-            )) as Box<dyn Instruction>,
-            "addq" => Box::new(Add::new(
-                OperandSize::Qword,
-                src_op.to_64bit(),
-                dst_op.to_64bit(),
-            )) as Box<dyn Instruction>,
-            "cmpq" => Box::new(Cmp::new(
-                OperandSize::Qword,
-                src_op.to_64bit(),
-                dst_op.to_64bit(),
-            )) as Box<dyn Instruction>,
-            "subq" => Box::new(Sub::new(
-                OperandSize::Qword,
-                src_op.to_64bit(),
-                dst_op.to_64bit(),
-            )),
-            "leaq" => Box::new(Lea::new(
-                OperandSize::Qword,
-                src_op.to_64bit(),
-                dst_op.to_64bit(),
-            )),
-            "imulq" => Box::new(IMul::new(
-                OperandSize::Qword,
-                src_op.to_64bit(),
-                dst_op.to_64bit(),
-            )) as Box<dyn Instruction>,
-            "movb" => Box::new(Mov::new(
-                OperandSize::Byte,
-                src_op.to_8bit(),
-                dst_op.to_8bit(),
-            )) as Box<dyn Instruction>,
-            "movw" => Box::new(Mov::new(
-                OperandSize::Word,
-                src_op.to_16bit(),
-                dst_op.to_16bit(),
-            )) as Box<dyn Instruction>,
-            "movl" => Box::new(Mov::new(
-                OperandSize::Dword,
-                src_op.to_32bit(),
-                dst_op.to_32bit(),
-            )) as Box<dyn Instruction>,
-            "movq" => Box::new(Mov::new(
-                OperandSize::Qword,
-                src_op.to_64bit(),
-                dst_op.to_64bit(),
-            )) as Box<dyn Instruction>,
+        let inst: Box<dyn Instruction> = match opcode {
+            "addl" => Box::new(Add::new(OperandSize::Dword, src_op, dst_op)),
+            "addq" => Box::new(Add::new(OperandSize::Qword, src_op, dst_op)),
+            "cmpq" => Box::new(Cmp::new(OperandSize::Qword, src_op, dst_op)),
+            "subq" => Box::new(Sub::new(OperandSize::Qword, src_op, dst_op)),
+            "leaq" => Box::new(Lea::new(OperandSize::Qword, src_op, dst_op)),
+            "imulq" => Box::new(IMul::new(OperandSize::Qword, src_op, dst_op)),
+            "movb" => Box::new(Mov::new(OperandSize::Byte, src_op, dst_op)),
+            "movw" => Box::new(Mov::new(OperandSize::Word, src_op, dst_op)),
+            "movl" => Box::new(Mov::new(OperandSize::Dword, src_op, dst_op)),
+            "movq" => Box::new(Mov::new(OperandSize::Qword, src_op, dst_op)),
             _ => panic!("not implemented generating '{}' yet", opcode),
         };
 

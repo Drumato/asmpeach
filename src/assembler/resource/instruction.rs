@@ -1,4 +1,6 @@
 mod add;
+use std::fmt::Display;
+
 pub use add::*;
 mod call;
 pub use call::*;
@@ -90,6 +92,11 @@ pub trait Instruction {
 pub enum InstName {
     Call,
     Jmp,
+    Pop,
+    Push,
+    Mov,
+    Ret,
+    EndBr64,
 }
 
 pub struct Group {
@@ -135,4 +142,26 @@ impl Default for Group {
             insts: Vec::new(),
         }
     }
+}
+
+pub(crate) fn panic_gen_noop_inst(inst_name: &str) -> ! {
+    panic!("cannot generate instruction => '{}'", inst_name)
+}
+
+pub(crate) fn panic_gen_unop_inst<A>(inst_name: &str, op: A) -> !
+where
+    A: Display,
+{
+    panic!("cannot generate instruction => '{} {}'", inst_name, op)
+}
+
+pub(crate) fn panic_gen_binop_inst<A, B>(inst_name: &str, op1: A, op2: B) -> !
+where
+    A: Display,
+    B: Display,
+{
+    panic!(
+        "cannot generate instruction => '{} {} {}'",
+        inst_name, op1, op2
+    )
 }

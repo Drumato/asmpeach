@@ -20,6 +20,11 @@ impl ModRM {
         }
     }
 
+    /// new M Encoding.
+    pub fn new_m(mode: AddressingMode, rm: &Operand) -> Self {
+        // 単にmiを呼び出して良い
+        Self::new_mi(mode, rm)
+    }
     /// new MI Encoding.
     pub fn new_mi(mode: AddressingMode, rm: &Operand) -> Self {
         let rm_byte = if rm.req_sib_byte() { 0x04 } else { rm.number() };

@@ -1,13 +1,13 @@
-use super::Instruction;
+use super::{InstName, Instruction};
 
 pub struct EndBr64();
 
 impl Instruction for EndBr64 {
     fn opcode(&self) -> Vec<u8> {
-        todo!()
+        vec![0xf3, 0x0f, 0x1e, 0xfa]
     }
 
-    fn name(&self) -> super::InstName {
-        todo!()
+    fn name(&self) -> InstName {
+        InstName::EndBr64
     }
 }
