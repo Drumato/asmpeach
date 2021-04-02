@@ -16,3 +16,5 @@ readme = "README.md"
 elf-utilities = "0.1.77"
 indexmap = "1.5.1"
 
+[badges]
+maintenance = { status = "experimental" }
